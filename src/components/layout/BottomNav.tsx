@@ -29,7 +29,7 @@ export default function BottomNav() {
                                     }`}
                             >
                                 {item.icon}
-                                <span className={`text-[10px] mt-1 ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label}</span>
+
                             </Link>
                         )
                     })}

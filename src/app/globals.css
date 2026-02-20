@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --border: #dbdbdb;
+  --primary-button: #0095f6;
+  --primary-button-hover: #1877f2;
+  --secondary-text: #8e8e8e;
+  --accent: #ed4956;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary-button);
+  --color-accent: var(--accent);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Base UI Components */
+.instagram-card {
+  @apply bg-white border border-[var(--border)] rounded-md;
+}
+
+.btn-primary {
+  @apply bg-[var(--primary-button)] text-white font-semibold py-1.5 px-4 rounded-lg hover:bg-[var(--primary-button-hover)] transition-colors;
+}
+
+.secondary-text {
+  @apply text-[var(--secondary-text)] text-sm;
+}
+

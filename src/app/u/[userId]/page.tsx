@@ -66,9 +66,18 @@ export default function ProfilePage() {
                             <div className="flex flex-col md:flex-row items-center gap-4">
                                 <h2 className="text-xl font-light">{profile.nickname}</h2>
                                 {userId === 'me' && (
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 items-center">
                                         <button className="bg-gray-100 hover:bg-gray-200 font-semibold py-1.5 px-4 rounded-lg text-sm transition-colors">프로필 편집</button>
-                                        <Settings className="w-6 h-6 cursor-pointer" />
+                                        <button
+                                            onClick={async () => {
+                                                await supabase.auth.signOut();
+                                                router.push('/login');
+                                            }}
+                                            className="bg-red-50 text-red-500 hover:bg-red-100 font-semibold py-1.5 px-4 rounded-lg text-sm transition-colors"
+                                        >
+                                            로그아웃
+                                        </button>
+                                        <Settings className="w-6 h-6 ml-2 cursor-pointer text-gray-600" />
                                     </div>
                                 )}
                             </div>

@@ -105,21 +105,36 @@ export default function ProfilePage() {
 
                     {/* Grid */}
                     <div className="grid grid-cols-3 gap-1 md:gap-7">
-                        {profile.posts?.map((post: any) => (
-                            <div key={post.id} onClick={() => router.push(`/p/${post.id}`)} className="aspect-square bg-gray-100 relative group cursor-pointer overflow-hidden">
-                                <img src={post.cover_image_url} alt="post" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6 text-white font-bold">
-                                    <div className="flex items-center gap-1">
-                                        <Heart className="w-6 h-6 fill-white" />
-                                        <span>0</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <MessageCircle className="w-6 h-6 fill-white" />
-                                        <span>0</span>
+                        {profile.posts?.map((post: any) => {
+                            let firstImage = post.cover_image_url;
+                            if (post.images && Array.isArray(post.images) && post.images.length > 0) {
+                                firstImage = post.images[0];
+                            } else {
+                                try {
+                                    const parsed = JSON.parse(post.cover_image_url);
+                                    if (Array.isArray(parsed) && parsed.length > 0) {
+                                        firstImage = parsed[0];
+                                    }
+                                } catch {
+                                    // ignore
+                                }
+                            }
+                            return (
+                                <div key={post.id} onClick={() => router.push(`/p/${post.id}`)} className="aspect-square bg-gray-100 relative group cursor-pointer overflow-hidden">
+                                    <img src={firstImage} alt="post" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6 text-white font-bold">
+                                        <div className="flex items-center gap-1">
+                                            <Heart className="w-6 h-6 fill-white" />
+                                            <span>0</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <MessageCircle className="w-6 h-6 fill-white" />
+                                            <span>0</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </main>

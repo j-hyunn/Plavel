@@ -40,7 +40,7 @@ export default function ProfilePage() {
                             <div className="space-y-1">
                                 <h1 className="font-semibold text-sm">Traveler Developer</h1>
                                 <p className="text-sm">Coding my way through the world ✈️💻</p>
-                                <a href="#" className="text-blue-900 text-sm font-semibold">github.com/traveler-dev</a>
+                                <a href="#" className="text-primary text-sm font-semibold">github.com/traveler-dev</a>
                             </div>
                         </div>
                     </div>

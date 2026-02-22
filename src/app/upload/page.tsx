@@ -1,20 +1,55 @@
 'use client';
-import BottomNav from '@/components/layout/BottomNav';
 
 import { useState, useEffect } from 'react';
-import { ImagePlus, X, Calendar, MapPin, Plus } from 'lucide-react';
+import { ImagePlus, X, Calendar as CalendarIcon, MapPin, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { api } from '@/services/api';
+import { format, differenceInDays } from 'date-fns';
+import { ko } from 'date-fns/locale';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { useLoadScript } from '@react-google-maps/api';
+import PlaceAutocomplete from '@/components/upload/PlaceAutocomplete';
+import BottomNav from '@/components/layout/BottomNav';
+
+const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
+
+interface DayAction {
+    id: string;
+    address: string;
+    lat?: number;
+    lng?: number;
+    google_types?: string[];
+}
+
+interface DayPlan {
+    day_number: number;
+    title: string;
+    description: string;
+    actions: DayAction[];
+    images: string[];
+}
 
 export default function CreatePostPage() {
     const router = useRouter();
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const { isLoaded, loadError } = useLoadScript({
+        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+        libraries,
+    });
+
+    const [coverImage, setCoverImage] = useState<string | null>(null);
     const [title, setTitle] = useState('');
     const [caption, setCaption] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [dayPlans, setDayPlans] = useState([{ day_number: 1, title: '', description: '' }]);
+    const [startDate, setStartDate] = useState<Date | null>(null);
+    const [endDate, setEndDate] = useState<Date | null>(null);
+    const [dayPlans, setDayPlans] = useState<DayPlan[]>([{ day_number: 1, title: '', description: '', actions: [], images: [] }]);
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState<any>(null);
 
@@ -30,41 +65,131 @@ export default function CreatePostPage() {
         checkUser();
     }, [router]);
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
+    useEffect(() => {
+        if (startDate && endDate && endDate >= startDate) {
+            const daysDiff = differenceInDays(endDate, startDate) + 1;
+            setDayPlans(prevPlans => {
+                const newPlans: DayPlan[] = [];
+                for (let i = 1; i <= daysDiff; i++) {
+                    const existing = prevPlans.find(p => p.day_number === i);
+                    if (existing) {
+                        newPlans.push(existing);
+                    } else {
+                        newPlans.push({ day_number: i, title: '', description: '', actions: [], images: [] });
+                    }
+                }
+                return newPlans;
+            });
+        }
+    }, [startDate, endDate]);
+
+    const processFile = (file: File): Promise<string> => {
+        return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setSelectedImage(reader.result as string);
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_DIM = 800;
+                    let { width, height } = img;
+                    if (width > height && width > MAX_DIM) {
+                        height *= MAX_DIM / width;
+                        width = MAX_DIM;
+                    } else if (height > MAX_DIM) {
+                        width *= MAX_DIM / height;
+                        height = MAX_DIM;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.6));
+                };
+                img.src = reader.result as string;
             };
             reader.readAsDataURL(file);
+        });
+    };
+
+    const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const processed = await processFile(file);
+            setCoverImage(processed);
         }
     };
 
-    const addDay = () => {
-        setDayPlans([...dayPlans, { day_number: dayPlans.length + 1, title: '', description: '' }]);
+    const handleDayImageChange = async (dayIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        const currentImages = dayPlans[dayIndex].images || [];
+
+        if (files.length + currentImages.length > 10) {
+            alert('일정별 이미지는 최대 10장까지 업로드할 수 있습니다.');
+            return;
+        }
+
+        const newProcessedImages = await Promise.all(files.map(processFile));
+        setDayPlans(prev => {
+            const updated = [...prev];
+            updated[dayIndex] = {
+                ...updated[dayIndex],
+                images: [...(updated[dayIndex].images || []), ...newProcessedImages]
+            };
+            return updated;
+        });
     };
 
-    const updateDayPlan = (index: number, field: string, value: string) => {
-        const newPlans = [...dayPlans];
-        (newPlans[index] as any)[field] = value;
-        setDayPlans(newPlans);
+    const removeDayImage = (dayIndex: number, imgIndex: number) => {
+        setDayPlans(prev => {
+            const updated = [...prev];
+            updated[dayIndex] = {
+                ...updated[dayIndex],
+                images: updated[dayIndex].images.filter((_, i) => i !== imgIndex)
+            };
+            return updated;
+        });
+    };
+
+    const updateDayPlan = (index: number, field: keyof DayPlan, value: string) => {
+        setDayPlans(prevPlans => {
+            const newPlans = [...prevPlans];
+            newPlans[index] = { ...newPlans[index], [field]: value };
+            return newPlans;
+        });
+    };
+
+    const addAction = (dayIndex: number) => {
+        setDayPlans(prevPlans => {
+            const newPlans = [...prevPlans];
+            const newDay = { ...newPlans[dayIndex], actions: [...(newPlans[dayIndex].actions || [])] };
+            newDay.actions.push({ id: `${Date.now()}-${Math.random()}`, address: '' });
+            newPlans[dayIndex] = newDay;
+            return newPlans;
+        });
+    };
+
+    const updateAction = (dayIndex: number, actionIndex: number, address: string, lat?: number, lng?: number, google_types?: string[]) => {
+        setDayPlans(prevPlans => {
+            const newPlans = [...prevPlans];
+            const newDay = { ...newPlans[dayIndex], actions: [...newPlans[dayIndex].actions] };
+            newDay.actions[actionIndex] = { ...newDay.actions[actionIndex], address, lat, lng, google_types };
+            newPlans[dayIndex] = newDay;
+            return newPlans;
+        });
     };
 
     const handlePublish = async () => {
-        if (!user || !selectedImage || !title) return;
+        if (!user || !coverImage || !title) return;
         setLoading(true);
 
         try {
-            // In a real app, you would upload the image to Supabase Storage first.
-            // For now, we'll use a placeholder or the base64 string (not recommended for production).
             const postData = {
                 author_id: user.id,
                 title,
                 caption,
-                cover_image_url: selectedImage, // Base64 for demo
-                travel_start_date: startDate || null,
-                travel_end_date: endDate || null,
+                images: [coverImage],
+                travel_start_date: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+                travel_end_date: endDate ? format(endDate, 'yyyy-MM-dd') : null,
             };
 
             await api.createPost(postData, dayPlans);
@@ -78,122 +203,222 @@ export default function CreatePostPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white">
-            <BottomNav />
+        <div className="min-h-screen bg-gray-50 flex flex-col font-sans mb-16">
+            <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex justify-between items-center">
+                <div className="w-10">
+                    <button onClick={() => router.back()} className="text-gray-500 hover:text-black">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+                <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
+                    새 일정 작성
+                </h1>
+                <div className="w-10 flex justify-end">
+                    <button
+                        onClick={handlePublish}
+                        disabled={!coverImage || !title || loading}
+                        className={`text-sm font-semibold transition-colors ${(!coverImage || !title || loading) ? 'text-gray-300 cursor-not-allowed' : 'text-primary hover:text-primary/80'}`}
+                    >
+                        {loading ? '...' : '공유'}
+                    </button>
+                </div>
+            </header>
 
-            <main className=" pb-28 min-h-screen flex items-center justify-center p-4">
-                <div className="instagram-card w-full max-w-[900px] overflow-hidden bg-white shadow-xl">
-                    <div className="border-b border-[var(--border)] p-3 flex justify-between items-center bg-gray-50/50">
-                        {selectedImage ? (
-                            <button onClick={() => setSelectedImage(null)} className="text-gray-500 hover:text-black">
-                                <X className="w-6 h-6" />
-                            </button>
-                        ) : <div className="w-6" />}
-                        <h2 className="font-semibold text-lg">여행 일정 공유하기</h2>
-                        <button
-                            onClick={handlePublish}
-                            disabled={!selectedImage || !title || loading}
-                            className={`text-[var(--primary-button)] font-semibold text-sm ${(!selectedImage || !title || loading) ? 'opacity-30 cursor-default' : 'hover:text-[var(--primary-button-hover)]'}`}
-                        >
-                            {loading ? '게시 중...' : '게시'}
-                        </button>
+            <main className="flex-1 pb-24 mx-auto w-full max-w-2xl bg-white md:my-8 md:rounded-2xl md:shadow-sm md:overflow-hidden md:h-fit">
+                {/* Cover Image Area */}
+                <div className="w-full bg-gray-50 border-b border-gray-100 p-4">
+                    <div className={cn("flex items-center justify-center", !coverImage ? "h-64" : "")}>
+                        {coverImage ? (
+                            <div className="relative w-full max-w-md aspect-video rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                                <img src={coverImage} alt="cover preview" className="w-full h-full object-cover" />
+                                <button
+                                    onClick={() => setCoverImage(null)}
+                                    className="absolute top-2 right-2 bg-black/50 p-1.5 rounded-full text-white backdrop-blur-sm hover:bg-black/70 transition"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                                <span className="absolute top-2 left-2 bg-primary/90 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm uppercase tracking-wide">대표 커버</span>
+                            </div>
+                        ) : (
+                            <label className="w-full max-w-md h-48 flex flex-col items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors rounded-xl border-2 border-dashed border-gray-300 cursor-pointer">
+                                <ImagePlus className="w-8 h-8 text-gray-400 mb-2" />
+                                <span className="text-xs font-semibold text-gray-500">커버 이미지 업로드</span>
+                                <input type="file" className="hidden" accept="image/*" onChange={handleCoverImageChange} />
+                            </label>
+                        )}
+                    </div>
+                </div>
+
+                {/* Itinerary Data Area */}
+                <div className="p-5 space-y-8">
+                    {/* Title & Caption */}
+                    <div className="space-y-4">
+                        <input
+                            type="text"
+                            placeholder="여행 제목 (예: 3박 4일 도쿄 여행)"
+                            className="w-full text-xl font-bold outline-none placeholder:text-gray-300 border-b border-transparent focus:border-primary pb-2 transition-colors"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                        />
+                        <textarea
+                            placeholder="어떤 여행이었나요? 간단한 소감을 남겨주세요."
+                            className="w-full text-sm outline-none resize-none h-16 text-gray-600 placeholder:text-gray-300"
+                            value={caption}
+                            onChange={(e) => setCaption(e.target.value)}
+                        />
                     </div>
 
-                    <div className="flex flex-col md:flex-row h-[600px]">
-                        {/* Image Area */}
-                        <div className="flex-1 bg-gray-50 flex items-center justify-center relative border-r border-[var(--border)]">
-                            {selectedImage ? (
-                                <img src={selectedImage} alt="preview" className="w-full h-full object-contain" />
-                            ) : (
-                                <label className="flex flex-col items-center gap-4 cursor-pointer p-10 text-center">
-                                    <ImagePlus className="w-16 h-16 text-gray-300" />
-                                    <div className="space-y-1">
-                                        <p className="text-lg font-medium text-gray-600">대표 사진을 업로드하세요</p>
-                                        <p className="text-xs text-gray-400">여행의 느낌을 가장 잘 나타내는 사진이 좋아요</p>
-                                    </div>
-                                    <div className="mt-4 bg-[var(--primary-button)] text-white px-6 py-2 rounded-lg font-semibold text-sm">기기에서 선택</div>
-                                    <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                                </label>
-                            )}
+                    {/* Dates */}
+                    <div className="flex gap-4 p-4 bg-gray-50 rounded-2xl">
+                        <div className="flex-1 space-y-1.5 flex flex-col items-start overflow-hidden">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-3">시작일</label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"ghost"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal hover:bg-transparent h-8 px-3 py-1",
+                                            !startDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4 text-primary/60 flex-shrink-0" />
+                                        {startDate ? format(startDate, "yyyy.MM.dd") : <span className="text-sm text-gray-500">시작일 선택</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={startDate || undefined}
+                                        onSelect={(date) => setStartDate(date || null)}
+                                        initialFocus
+                                        locale={ko}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="w-px bg-gray-200 my-2"></div>
+                        <div className="flex-1 space-y-1.5 flex flex-col items-start overflow-hidden">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-3">종료일</label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"ghost"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal hover:bg-transparent h-8 px-3 py-1",
+                                            !endDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4 text-primary/60 flex-shrink-0" />
+                                        {endDate ? format(endDate, "yyyy.MM.dd") : <span className="text-sm text-gray-500">종료일 선택</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 z-[100]" align="end">
+                                    <Calendar
+                                        mode="single"
+                                        selected={endDate || undefined}
+                                        onSelect={(date) => setEndDate(date || null)}
+                                        disabled={(date) => (startDate ? date < startDate : false)}
+                                        initialFocus
+                                        locale={ko}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    </div>
+
+                    {/* Days Area */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-gray-800">일정 상세</h3>
                         </div>
 
-                        {/* Itinerary Data Area */}
-                        <div className="w-full md:w-[350px] p-6 overflow-y-auto space-y-6 bg-white">
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">여행 제목</label>
-                                    <input
-                                        type="text"
-                                        placeholder="어디로 다녀오셨나요?"
-                                        className="w-full text-lg font-bold outline-none border-b border-gray-100 pb-1 focus:border-[var(--primary-button)] transition-colors"
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">간단한 설명</label>
-                                    <textarea
-                                        placeholder="여행에 대한 짧은 소감을 적어주세요"
-                                        className="w-full text-sm outline-none bg-transparent resize-none h-20 border-b border-gray-100"
-                                        value={caption}
-                                        onChange={(e) => setCaption(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="flex gap-4">
-                                    <div className="flex-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">시작일</label>
-                                        <div className="flex items-center gap-2 border-b border-gray-100 pb-1">
-                                            <Calendar className="w-3 h-3 text-gray-400" />
-                                            <input type="text" placeholder="2024.01.01" className="bg-transparent outline-none text-xs w-full" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                                        </div>
+                        <div className="space-y-3">
+                            {dayPlans.map((day, idx) => (
+                                <div key={idx} className="flex gap-3 items-start bg-white p-4 rounded-2xl border border-gray-100 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.05)] focus-within:border-primary/30 focus-within:shadow-md transition-all">
+                                    <div className="flex-shrink-0 w-11 h-11 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full flex items-center justify-center border border-primary/20">
+                                        <span className="text-sm font-extrabold text-primary">D{day.day_number}</span>
                                     </div>
-                                    <div className="flex-1">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">종료일</label>
-                                        <div className="flex items-center gap-2 border-b border-gray-100 pb-1">
-                                            <Calendar className="w-3 h-3 text-gray-300" />
-                                            <input type="text" placeholder="2024.01.03" className="bg-transparent outline-none text-xs w-full" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                                    <div className="flex-1 space-y-4 pt-1">
+                                        <div className="space-y-2">
+                                            <input
+                                                type="text"
+                                                placeholder="주요 장소나 테마"
+                                                className="w-full text-sm font-bold outline-none text-gray-800 placeholder:text-gray-300"
+                                                value={day.title}
+                                                onChange={(e) => updateDayPlan(idx, 'title', e.target.value)}
+                                            />
+                                            <textarea
+                                                placeholder="무엇을 했는지 기록해보세요"
+                                                className="w-full text-xs outline-none resize-none h-14 text-gray-500 placeholder:text-gray-300"
+                                                value={day.description}
+                                                onChange={(e) => updateDayPlan(idx, 'description', e.target.value)}
+                                            />
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="space-y-4 pt-4 border-t border-gray-50">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-sm font-bold uppercase tracking-wider text-gray-800">Day별 요약</h3>
-                                    <button onClick={addDay} className="text-[var(--primary-button)] hover:bg-blue-50 p-1 rounded-full transition-colors">
-                                        <Plus className="w-4 h-4" />
-                                    </button>
-                                </div>
+                                        {/* Day Images Area */}
+                                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none min-h-[80px]">
+                                            {day.images && day.images.map((img, imgIdx) => (
+                                                <div key={imgIdx} className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-gray-100 shadow-sm">
+                                                    <img src={img} alt="day preview" className="w-full h-full object-cover" />
+                                                    <button
+                                                        onClick={() => removeDayImage(idx, imgIdx)}
+                                                        className="absolute top-1 right-1 bg-black/50 p-1 rounded-full text-white backdrop-blur-sm"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {(day.images?.length || 0) < 10 && (
+                                                <label className="flex-shrink-0 w-20 h-20 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors rounded-lg border-2 border-dashed border-gray-200 cursor-pointer">
+                                                    <Plus className="w-5 h-5 text-gray-300" />
+                                                    <span className="text-[10px] text-gray-400 font-medium">사진</span>
+                                                    <input type="file" multiple className="hidden" accept="image/*" onChange={(e) => handleDayImageChange(idx, e)} />
+                                                </label>
+                                            )}
+                                        </div>
 
-                                <div className="space-y-6">
-                                    {dayPlans.map((day, idx) => (
-                                        <div key={idx} className="relative pl-6 border-l border-gray-100">
-                                            <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-gray-200" />
-                                            <div className="space-y-2">
-                                                <input
-                                                    type="text"
-                                                    placeholder={`Day ${day.day_number} 장소 또는 테마`}
-                                                    className="w-full text-xs font-semibold outline-none bg-gray-50 p-2 rounded"
-                                                    value={day.title}
-                                                    onChange={(e) => updateDayPlan(idx, 'title', e.target.value)}
-                                                />
-                                                <textarea
-                                                    placeholder="간단한 설명을 적어주세요"
-                                                    className="w-full text-[10px] outline-none bg-transparent resize-none h-12 text-gray-500"
-                                                    value={day.description}
-                                                    onChange={(e) => updateDayPlan(idx, 'description', e.target.value)}
-                                                />
+                                        {/* Day Actions Area */}
+                                        <div className="space-y-2 pt-2 border-t border-gray-100">
+                                            {day.actions && day.actions.map((action, actionIdx) => (
+                                                <div key={action.id} className="relative">
+                                                    {isLoaded ? (
+                                                        <PlaceAutocomplete
+                                                            value={action.address}
+                                                            onChange={(address, lat, lng, types) => updateAction(idx, actionIdx, address, lat, lng, types)}
+                                                        />
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-2">
+                                                            <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                                                            <input
+                                                                type="text"
+                                                                placeholder="구글지도 로딩중..."
+                                                                className="w-full text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400"
+                                                                disabled
+                                                                value={action.address}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+
+                                            <div className="flex gap-2 pt-1">
+                                                <button
+                                                    onClick={() => addAction(idx)}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-[10px] font-bold text-gray-500 transition-colors border border-dashed border-gray-200"
+                                                >
+                                                    <Plus className="w-3 h-3" />
+                                                    <span>장소 추가</span>
+                                                </button>
                                             </div>
                                         </div>
-                                    ))}
+                                    </div>
                                 </div>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 </div>
             </main>
+            <BottomNav />
         </div>
     );
 }

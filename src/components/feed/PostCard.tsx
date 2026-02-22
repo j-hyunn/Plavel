@@ -1,17 +1,22 @@
-import Link from 'next/link';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Calendar } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Calendar } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { cn } from '@/lib/utils';
 
 interface PostCardProps {
     id: string | number;
     username: string;
     userImage: string;
     travelTitle: string;
-    postImage: string;
+    postImage: string | string[];
     caption: string;
     likes: number;
     timeAgo: string;
     travelStartDate?: string;
     travelEndDate?: string;
+    isLiked?: boolean;
+    isBookmarked?: boolean;
+    currentUserId?: string;
 }
 
 export default function PostCard({
@@ -25,9 +30,84 @@ export default function PostCard({
     timeAgo,
     travelStartDate,
     travelEndDate,
+    isLiked = false,
+    isBookmarked = false,
+    currentUserId,
 }: PostCardProps) {
+    const router = useRouter();
+    let images: string[] = [];
+    if (Array.isArray(postImage)) {
+        images = postImage;
+    } else {
+        images = [postImage];
+        try {
+            const parsed = JSON.parse(postImage);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                images = parsed;
+            }
+        } catch {
+            // ignore and use fallback
+        }
+    }
+
+    const [currentImageIdx, setCurrentImageIdx] = useState(0);
+    const [liked, setLiked] = useState(isLiked);
+    const [bookmarked, setBookmarked] = useState(isBookmarked);
+    const [likeCount, setLikeCount] = useState(likes);
+
+    const handleLike = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!currentUserId) return;
+        const newLiked = !liked;
+        setLiked(newLiked);
+        setLikeCount(prev => newLiked ? prev + 1 : prev - 1);
+        try {
+            const { api } = await import('@/services/api');
+            if (newLiked) {
+                await api.likePost(String(id), currentUserId);
+            } else {
+                await api.unlikePost(String(id), currentUserId);
+            }
+        } catch (error) {
+            console.error('Like toggle failed', error);
+            setLiked(!newLiked);
+            setLikeCount(prev => !newLiked ? prev + 1 : prev - 1);
+        }
+    };
+
+    const handleBookmark = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!currentUserId) return;
+        const newBookmarked = !bookmarked;
+        setBookmarked(newBookmarked);
+        try {
+            const { api } = await import('@/services/api');
+            if (newBookmarked) {
+                await api.bookmarkPost(String(id), currentUserId);
+            } else {
+                await api.unbookmarkPost(String(id), currentUserId);
+            }
+        } catch (error) {
+            console.error('Bookmark toggle failed', error);
+            setBookmarked(!newBookmarked);
+        }
+    };
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const target = e.currentTarget;
+        const scrollPosition = target.scrollLeft;
+        const width = target.clientWidth;
+        const newIndex = Math.round(scrollPosition / width);
+        if (newIndex !== currentImageIdx) {
+            setCurrentImageIdx(newIndex);
+        }
+    };
+
     return (
-        <div className="instagram-card overflow-hidden mb-8 max-w-[470px] mx-auto border-[var(--border)] shadow-sm">
+        <div
+            onClick={() => router.push(`/p/${id}`)}
+            className="overflow-hidden mb-4 sm:mb-8 w-full sm:max-w-[470px] mx-auto bg-white border-y sm:border border-[var(--border)] sm:rounded-md sm:shadow-sm transition-all cursor-pointer"
+        >
             {/* Header */}
             <div className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-3">
@@ -52,39 +132,56 @@ export default function PostCard({
                 <h3 className="font-bold text-base leading-tight">{travelTitle}</h3>
             </div>
 
-            {/* Image (Link to Detail) */}
-            <Link href={`/p/${id}`}>
-                <div className="aspect-square bg-gray-100 relative group cursor-pointer overflow-hidden">
-                    <img
-                        src={postImage}
-                        alt={travelTitle}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+            {/* Image Carousel */}
+            <div className="relative group">
+                <div
+                    className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none aspect-square bg-gray-100"
+                    onScroll={handleScroll}
+                >
+                    {images.map((img, idx) => (
+                        <div key={idx} className="relative flex-shrink-0 w-full h-full snap-center snap-always overflow-hidden">
+                            <img
+                                src={img}
+                                alt={travelTitle}
+                                className="w-full h-full object-cover transition-transform duration-700"
+                            />
+                        </div>
+                    ))}
                 </div>
-            </Link>
+
+                {/* Dot Indicators */}
+                {images.length > 1 && (
+                    <div className="absolute outline-none bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none">
+                        {images.map((_, idx) => (
+                            <div
+                                key={idx}
+                                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 shadow-[0_1px_2px_rgba(0,0,0,0.4)] ${idx === currentImageIdx ? 'bg-primary scale-110' : 'bg-white/70'}`}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
 
             {/* Actions */}
             <div className="p-3">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-4">
-                        <Heart className="w-6 h-6 cursor-pointer hover:text-gray-500" />
-                        <MessageCircle className="w-6 h-6 cursor-pointer hover:text-gray-500" />
-                        <Send className="w-6 h-6 cursor-pointer hover:text-gray-500" />
+                        <Heart onClick={handleLike} className={cn("w-6 h-6 cursor-pointer hover:text-gray-500 transition-colors", liked ? "fill-red-500 text-red-500 hover:text-red-600" : "")} />
+                        <MessageCircle onClick={(e) => { e.stopPropagation(); router.push(`/p/${id}`); }} className="w-6 h-6 cursor-pointer hover:text-gray-500 transition-colors" />
                     </div>
-                    <Bookmark className="w-6 h-6 cursor-pointer hover:text-gray-500" />
+                    <Bookmark onClick={handleBookmark} className={cn("w-6 h-6 cursor-pointer hover:text-gray-500 transition-colors", bookmarked ? "fill-black text-black" : "")} />
                 </div>
 
                 {/* Info */}
                 <div className="space-y-1">
-                    <p className="font-semibold text-sm">좋아요 {likes.toLocaleString()}개</p>
-                    <p className="text-sm">
+                    <p className="font-semibold text-sm">좋아요 {likeCount.toLocaleString()}개</p>
+                    <div className="text-sm">
                         <span className="font-semibold mr-2">{username}</span>
-                        {caption}
-                    </p>
-                    <Link href={`/p/${id}`} className="text-[var(--secondary-text)] text-sm block">
+                        <span className="whitespace-pre-wrap">{caption}</span>
+                    </div>
+                    <div className="text-[var(--secondary-text)] text-sm block">
                         일정 상세보기...
-                    </Link>
+                    </div>
                     <p className="text-[10px] text-[var(--secondary-text)] uppercase">{timeAgo}</p>
                 </div>
             </div>

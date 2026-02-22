@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLoadScript } from '@react-google-maps/api';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { usePostDetail } from '@/hooks/usePostDetail';
+import { DEFAULT_AVATAR } from '@/lib/constants';
+import { trackEvent } from '@/lib/gtag';
 
 import PostDetailHeader from '@/components/post/PostDetailHeader';
 import DayPlanList from '@/components/post/DayPlanList';
@@ -36,6 +38,12 @@ export default function PostDetailPage() {
         setFullscreenImage(url);
     };
 
+    useEffect(() => {
+        if (post) {
+            trackEvent('view_post_detail', { post_id: postId, author_id: post.author_id });
+        }
+    }, [post, postId]);
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -60,10 +68,17 @@ export default function PostDetailPage() {
                 </button>
                 <div
                     className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => router.push(`/u/${post.author_id}`)}
+                    onClick={() => {
+                        if (!currentUser) {
+                            alert('로그인이 필요한 기능입니다.');
+                            router.push('/login');
+                            return;
+                        }
+                        router.push(`/u/${post.author_id}`);
+                    }}
                 >
                     <div className="w-7 h-7 rounded-full overflow-hidden border border-gray-200">
-                        <img src={post.author?.avatar_url || 'https://i.pravatar.cc/150'} alt={post.author?.nickname} className="w-full h-full object-cover" />
+                        <img src={post.author?.avatar_url || DEFAULT_AVATAR} alt={post.author?.nickname} className="w-full h-full object-cover" />
                     </div>
                     <span className="font-semibold text-sm text-gray-800">{post.author?.nickname || 'Unknown'}</span>
                 </div>

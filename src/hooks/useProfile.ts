@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { api } from '@/services/api';
 import type { UserProfile, Post } from '@/types';
 import type { TabType } from '@/components/profile/ProfileTabs';
+import { trackEvent } from '@/lib/gtag';
 
 export function useProfile(userId: string) {
     const router = useRouter();
@@ -85,16 +86,23 @@ export function useProfile(userId: string) {
     };
 
     const handleFollow = async () => {
-        if (!currentUserId || !profile) return;
+        if (!profile) return;
+        if (!currentUserId) {
+            alert('로그인이 필요한 기능입니다.');
+            router.push('/login');
+            return;
+        }
         try {
             if (isFollowing) {
                 await api.unfollowUser(currentUserId, profile.id);
                 setIsFollowing(false);
                 setFollowerCount(prev => Math.max(0, prev - 1));
+                trackEvent('follow_user', { target_user_id: profile.id, action: 'unfollow' });
             } else {
                 await api.followUser(currentUserId, profile.id);
                 setIsFollowing(true);
                 setFollowerCount(prev => prev + 1);
+                trackEvent('follow_user', { target_user_id: profile.id, action: 'follow' });
             }
         } catch (error) {
             console.error('Follow toggle failed:', error);

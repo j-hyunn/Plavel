@@ -2,6 +2,7 @@ import { Settings, User, LogOut } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { UserProfile } from '@/types';
+import { DEFAULT_AVATAR } from '@/lib/constants';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -33,7 +34,7 @@ export default function ProfileCard({
                 {/* Profile Image */}
                 <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gray-200 overflow-hidden shrink-0">
                     <img
-                        src={profile.avatar_url || 'https://i.pravatar.cc/300'}
+                        src={profile.avatar_url || DEFAULT_AVATAR}
                         alt="profile"
                         className="w-full h-full object-cover"
                     />

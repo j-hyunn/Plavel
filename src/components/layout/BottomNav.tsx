@@ -25,6 +25,7 @@ export default function BottomNav() {
                             <Link
                                 key={item.label}
                                 href={item.href}
+                                prefetch={true}
                                 className={`flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${isActive ? 'text-primary font-bold' : 'text-gray-400 hover:text-primary'
                                     }`}
                             >
@@ -38,6 +39,7 @@ export default function BottomNav() {
                 {/* Glassmorphism Create Button */}
                 <Link
                     href="/upload"
+                    prefetch={true}
                     className="flex items-center justify-center w-[60px] h-[60px] rounded-full shrink-0 
                                transition-all duration-300 relative group overflow-hidden"
                     style={{

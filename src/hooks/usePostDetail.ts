@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { api } from '@/services/api';
 import type { User } from '@supabase/supabase-js';
+import { trackEvent } from '@/lib/gtag';
 
 export function usePostDetail(postId: string) {
     const router = useRouter();
@@ -46,7 +47,11 @@ export function usePostDetail(postId: string) {
     };
 
     const handleLike = async () => {
-        if (!currentUser) return alert('로그인이 필요합니다.');
+        if (!currentUser) {
+            alert('로그인이 필요한 기능입니다.');
+            router.push('/login');
+            return;
+        }
         const newLiked = !post.isLiked;
 
         setPost((prev: any) => ({
@@ -58,6 +63,7 @@ export function usePostDetail(postId: string) {
         try {
             if (newLiked) await api.likePost(postId, currentUser.id);
             else await api.unlikePost(postId, currentUser.id);
+            trackEvent('click_like', { post_id: postId, action: newLiked ? 'like' : 'unlike' });
         } catch (err) {
             setPost((prev: any) => ({
                 ...prev,
@@ -69,7 +75,11 @@ export function usePostDetail(postId: string) {
     };
 
     const handleBookmark = async () => {
-        if (!currentUser) return alert('로그인이 필요합니다.');
+        if (!currentUser) {
+            alert('로그인이 필요한 기능입니다.');
+            router.push('/login');
+            return;
+        }
         const newBookmarked = !post.isBookmarked;
 
         setPost((prev: any) => ({ ...prev, isBookmarked: newBookmarked }));
@@ -77,6 +87,7 @@ export function usePostDetail(postId: string) {
         try {
             if (newBookmarked) await api.bookmarkPost(postId, currentUser.id);
             else await api.unbookmarkPost(postId, currentUser.id);
+            trackEvent('bookmark_post', { post_id: postId, action: newBookmarked ? 'save' : 'unsave' });
         } catch (err) {
             setPost((prev: any) => ({ ...prev, isBookmarked: !newBookmarked }));
             console.error(err);

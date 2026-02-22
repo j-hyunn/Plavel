@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/services/api';
 import type { Comment } from '@/types';
 import type { User } from '@supabase/supabase-js';
+import { DEFAULT_AVATAR } from '@/lib/constants';
+import { trackEvent } from '@/lib/gtag';
 
 interface CommentSectionProps {
     postId: string;
@@ -17,15 +19,29 @@ export default function CommentSection({ postId, currentUser, initialComments }:
     const [comments, setComments] = useState<Comment[]>(initialComments);
     const [newComment, setNewComment] = useState('');
 
+    const handleProfileClick = (authorId: string) => {
+        if (!currentUser) {
+            alert('로그인이 필요한 기능입니다.');
+            router.push('/login');
+            return;
+        }
+        router.push(`/u/${authorId}`);
+    };
+
     const submitComment = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newComment.trim()) return;
-        if (!currentUser) return alert('로그인이 필요합니다.');
+        if (!currentUser) {
+            alert('로그인이 필요한 기능입니다.');
+            router.push('/login');
+            return;
+        }
 
         try {
             const added = await api.addComment(postId, currentUser.id, newComment.trim());
             setComments(prev => [...prev, added]);
             setNewComment('');
+            trackEvent('submit_comment', { post_id: postId });
         } catch (error) {
             console.error('Failed to add comment', error);
             alert('댓글 작성 중 오류가 발생했습니다.');
@@ -41,15 +57,15 @@ export default function CommentSection({ postId, currentUser, initialComments }:
                     <div key={comment.id} className="flex gap-3">
                         <div
                             className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => router.push(`/u/${comment.author_id}`)}
+                            onClick={() => handleProfileClick(comment.author_id)}
                         >
-                            <img src={comment.author?.avatar_url || 'https://i.pravatar.cc/150'} alt="avatar" className="w-full h-full object-cover" />
+                            <img src={comment.author?.avatar_url || DEFAULT_AVATAR} alt="avatar" className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1">
                             <div className="flex items-baseline gap-2">
                                 <span
                                     className="font-semibold text-sm text-gray-900 cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => router.push(`/u/${comment.author_id}`)}
+                                    onClick={() => handleProfileClick(comment.author_id)}
                                 >
                                     {comment.author?.nickname || 'Unknown'}
                                 </span>

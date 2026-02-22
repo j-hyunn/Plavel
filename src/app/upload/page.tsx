@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -16,6 +17,7 @@ import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
 import { useLoadScript } from '@react-google-maps/api';
 import { cn } from '@/lib/utils';
 import { usePostUpload } from '@/hooks/usePostUpload';
+import { trackEvent } from '@/lib/gtag';
 
 import CoverImageUpload from '@/components/upload/CoverImageUpload';
 import DateRangePicker from '@/components/upload/DateRangePicker';
@@ -34,6 +36,10 @@ export default function CreatePostPage() {
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
         libraries,
     });
+
+    useEffect(() => {
+        trackEvent('start_upload', { source: 'navigation' });
+    }, []);
 
     const {
         coverImage,

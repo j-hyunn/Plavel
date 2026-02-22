@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { api } from '@/services/api';
 import PostCard from '@/components/feed/PostCard';
+import { DEFAULT_AVATAR } from '@/lib/constants';
 
 export default function SavedPage() {
     const router = useRouter();
@@ -57,7 +58,7 @@ export default function SavedPage() {
                                     key={post.id}
                                     id={post.id}
                                     username={post.author?.nickname || 'Unknown'}
-                                    userImage={post.author?.avatar_url || 'https://i.pravatar.cc/150'}
+                                    userImage={post.author?.avatar_url || DEFAULT_AVATAR}
                                     travelTitle={post.title}
                                     postImage={(() => {
                                         const all = [...(post.images || [])];

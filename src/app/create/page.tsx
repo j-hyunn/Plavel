@@ -3,6 +3,7 @@ import BottomNav from '@/components/layout/BottomNav';
 
 import { useState } from 'react';
 import { ImagePlus, X } from 'lucide-react';
+import { DEFAULT_AVATAR } from '@/lib/constants';
 
 export default function CreatePostPage() {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export default function CreatePostPage() {
                             <div className="w-full md:w-64 p-4 space-y-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-100">
-                                        <img src="https://i.pravatar.cc/100" alt="me" />
+                                        <img src={DEFAULT_AVATAR} alt="me" />
                                     </div>
                                     <span className="font-semibold text-sm">traveler_dev</span>
                                 </div>

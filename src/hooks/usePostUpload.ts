@@ -7,6 +7,7 @@ import type { User } from '@supabase/supabase-js';
 import type { DayPlan } from '@/types';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
+import { trackEvent } from '@/lib/gtag';
 
 export function usePostUpload() {
     const router = useRouter();
@@ -177,6 +178,12 @@ export function usePostUpload() {
             };
 
             await api.createPost(postData, dayPlans);
+
+            trackEvent('complete_upload', {
+                total_days: dayPlans.length,
+                images_count: dayPlans.reduce((acc, dp) => acc + (dp.images?.length || 0), coverImage ? 1 : 0)
+            });
+
             router.push('/');
         } catch (error) {
             console.error('Error publishing post:', error);

@@ -2,6 +2,7 @@ import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Calendar } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/gtag';
 
 interface PostCardProps {
     id: string | number;
@@ -59,7 +60,11 @@ export default function PostCard({
 
     const handleLike = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!currentUserId) return;
+        if (!currentUserId) {
+            alert('로그인이 필요한 기능입니다.');
+            router.push('/login');
+            return;
+        }
         const newLiked = !liked;
         setLiked(newLiked);
         setLikeCount(prev => newLiked ? prev + 1 : prev - 1);
@@ -70,6 +75,7 @@ export default function PostCard({
             } else {
                 await api.unlikePost(String(id), currentUserId);
             }
+            trackEvent('click_like', { post_id: id, action: newLiked ? 'like' : 'unlike' });
         } catch (error) {
             console.error('Like toggle failed', error);
             setLiked(!newLiked);
@@ -79,7 +85,11 @@ export default function PostCard({
 
     const handleBookmark = async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!currentUserId) return;
+        if (!currentUserId) {
+            alert('로그인이 필요한 기능입니다.');
+            router.push('/login');
+            return;
+        }
         const newBookmarked = !bookmarked;
         setBookmarked(newBookmarked);
         try {
@@ -89,6 +99,7 @@ export default function PostCard({
             } else {
                 await api.unbookmarkPost(String(id), currentUserId);
             }
+            trackEvent('bookmark_post', { post_id: id, action: newBookmarked ? 'save' : 'unsave' });
         } catch (error) {
             console.error('Bookmark toggle failed', error);
             setBookmarked(!newBookmarked);
@@ -116,6 +127,11 @@ export default function PostCard({
                     className="flex items-center gap-3 cursor-pointer group"
                     onClick={(e) => {
                         e.stopPropagation();
+                        if (!currentUserId) {
+                            alert('로그인이 필요한 기능입니다.');
+                            router.push('/login');
+                            return;
+                        }
                         if (authorId) {
                             router.push(`/u/${authorId}`);
                         }

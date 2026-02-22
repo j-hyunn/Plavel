@@ -76,7 +76,7 @@ export default function PlaceAutocomplete({ value, onChange, placeholder = "방�
                     }}
                     onFocus={() => setIsFocused(true)}
                     disabled={!ready}
-                    className="w-full text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400"
+                    className="w-full text-sm bg-transparent outline-none text-gray-700 placeholder:text-gray-400"
                     placeholder={ready ? placeholder : "지도 스크립트 로딩중..."}
                 />
             </div>

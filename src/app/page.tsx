@@ -66,14 +66,7 @@ export default function Home() {
                   userImage={post.author?.avatar_url || 'https://i.pravatar.cc/150'}
                   travelTitle={post.title}
                   postImage={(() => {
-                    let coverImgs = [];
-                    try {
-                      const imgVal = post.images || post.cover_image_url;
-                      coverImgs = typeof imgVal === 'string' && imgVal.startsWith('[') ? JSON.parse(imgVal) : (Array.isArray(imgVal) ? imgVal : [imgVal]);
-                    } catch {
-                      coverImgs = [post.cover_image_url];
-                    }
-                    const all = [...coverImgs];
+                    const all = [...(post.images || [])];
                     post.day_plans?.forEach((dp: any) => { if (dp.images && Array.isArray(dp.images)) all.push(...dp.images); });
                     return all;
                   })()}
@@ -85,10 +78,11 @@ export default function Home() {
                   isLiked={post.isLiked}
                   isBookmarked={post.isBookmarked}
                   currentUserId={userId || undefined}
+                  authorId={post.author_id}
                 />
               ))
             ) : (
-              <div className="text-center py-20 bg-white sm:rounded-lg border-y sm:border border-[var(--border)] w-full">
+              <div className="text-center py-20 bg-white sm:rounded-lg border-none sm:border border-[var(--border)] w-full">
                 <p className="text-gray-500">아직 게시물이 없습니다.</p>
                 <p className="text-sm text-gray-400 mt-2">첫 번째 여행기를 작성해보세요!</p>
               </div>

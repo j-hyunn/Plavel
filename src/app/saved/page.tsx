@@ -60,14 +60,7 @@ export default function SavedPage() {
                                     userImage={post.author?.avatar_url || 'https://i.pravatar.cc/150'}
                                     travelTitle={post.title}
                                     postImage={(() => {
-                                        let coverImgs = [];
-                                        try {
-                                            const imgVal = post.images || post.cover_image_url;
-                                            coverImgs = typeof imgVal === 'string' && imgVal.startsWith('[') ? JSON.parse(imgVal) : (Array.isArray(imgVal) ? imgVal : [imgVal]);
-                                        } catch {
-                                            coverImgs = [post.cover_image_url];
-                                        }
-                                        const all = [...coverImgs];
+                                        const all = [...(post.images || [])];
                                         post.day_plans?.forEach((dp: any) => { if (dp.images && Array.isArray(dp.images)) all.push(...dp.images); });
                                         return all;
                                     })()}

@@ -17,6 +17,7 @@ interface PostCardProps {
     isLiked?: boolean;
     isBookmarked?: boolean;
     currentUserId?: string;
+    authorId?: string | number;
 }
 
 export default function PostCard({
@@ -33,6 +34,7 @@ export default function PostCard({
     isLiked = false,
     isBookmarked = false,
     currentUserId,
+    authorId,
 }: PostCardProps) {
     const router = useRouter();
     let images: string[] = [];
@@ -106,12 +108,20 @@ export default function PostCard({
     return (
         <div
             onClick={() => router.push(`/p/${id}`)}
-            className="overflow-hidden mb-4 sm:mb-8 w-full sm:max-w-[470px] mx-auto bg-white border-y sm:border border-[var(--border)] sm:rounded-md sm:shadow-sm transition-all cursor-pointer"
+            className="overflow-hidden mb-4 sm:mb-8 w-full sm:max-w-[470px] mx-auto bg-white border-none sm:border border-[var(--border)] sm:rounded-md sm:shadow-sm transition-all cursor-pointer"
         >
             {/* Header */}
             <div className="flex items-center justify-between p-3">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200">
+                <div
+                    className="flex items-center gap-3 cursor-pointer group"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (authorId) {
+                            router.push(`/u/${authorId}`);
+                        }
+                    }}
+                >
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 group-hover:opacity-80 transition-opacity">
                         <img src={userImage} alt={username} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex flex-col">

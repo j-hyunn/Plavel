@@ -1,32 +1,28 @@
 'use client';
-import { useEffect } from 'react';
 
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
-    pointerWithin,
-    closestCenter,
     KeyboardSensor,
     PointerSensor,
     TouchSensor,
     useSensor,
     useSensors,
-    DragEndEvent
 } from '@dnd-kit/core';
-import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useLoadScript } from '@react-google-maps/api';
 import { cn } from '@/lib/utils';
-import { usePostUpload } from '@/hooks/usePostUpload';
-import { trackEvent } from '@/lib/gtag';
-
-import CoverImageUpload from '@/components/upload/CoverImageUpload';
+import { usePlanEditor } from '@/hooks/usePlanEditor';
+import { useMyPlans } from '@/hooks/useMyPlans';
 import DateRangePicker from '@/components/upload/DateRangePicker';
 import SharedDayEditor from '@/components/plan/SharedDayEditor';
 
 const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
 
-export default function CreatePostPage() {
+export default function CreatePlanPage() {
     const router = useRouter();
+    const { savePlan } = useMyPlans();
+
     const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
     const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } });
     const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
@@ -37,34 +33,35 @@ export default function CreatePostPage() {
         libraries,
     });
 
-    useEffect(() => {
-        trackEvent('start_upload', { source: 'navigation' });
-    }, []);
-
     const {
-        coverImage,
-        setCoverImage,
-        title,
-        setTitle,
-        caption,
-        setCaption,
-        startDate,
-        setStartDate,
-        endDate,
-        setEndDate,
-        dayPlans,
-        loading,
-        isFormValid,
-        handleCoverImageChange,
-        handleDayImageChange,
-        removeDayImage,
-        updateDayPlan,
+        title, setTitle,
+        startDate, setStartDate,
+        endDate, setEndDate,
+        days,
+        updateDay,
         addAction,
         updateAction,
         removeAction,
         handleDragEnd,
-        handlePublish,
-    } = usePostUpload();
+        isFormValid
+    } = usePlanEditor();
+
+    const handleSave = () => {
+        if (!isFormValid) return;
+
+        const newPlan = {
+            id: crypto.randomUUID(),
+            title,
+            startDate: startDate ? startDate.toISOString() : null,
+            endDate: endDate ? endDate.toISOString() : null,
+            days,
+            createdAt: new Date().toISOString(),
+        };
+
+        // For MVP, Personal plans are purely local.
+        savePlan(newPlan as any);
+        router.push('/my-plans');
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -75,43 +72,31 @@ export default function CreatePostPage() {
                     </button>
                 </div>
                 <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">
-                    새 일정 작성
+                    새 여행 계획
                 </h1>
                 <div className="w-10 flex justify-end">
                     <button
-                        onClick={handlePublish}
-                        disabled={!isFormValid || loading}
+                        onClick={handleSave}
+                        disabled={!isFormValid}
                         className={cn(
                             "text-base font-bold transition-colors",
-                            (!isFormValid || loading) ? "text-gray-300 cursor-not-allowed" : "text-primary hover:text-primary/80"
+                            !isFormValid ? "text-gray-300 cursor-not-allowed" : "text-primary hover:text-primary/80"
                         )}
                     >
-                        {loading ? '...' : '공유'}
+                        저장
                     </button>
                 </div>
             </header>
 
             <main className="flex-1 pb-10 mx-auto w-full max-w-2xl bg-white md:my-8 md:rounded-2xl md:shadow-sm md:overflow-hidden md:h-fit">
-                <CoverImageUpload
-                    coverImage={coverImage}
-                    onImageChange={handleCoverImageChange}
-                    onRemove={() => setCoverImage(null)}
-                />
-
                 <div className="p-5 space-y-8">
-                    <div className="space-y-4">
+                    <div className="space-y-4 pt-4">
                         <input
                             type="text"
-                            placeholder="여행 제목 (예: 3박 4일 도쿄 여행)"
-                            className="w-full text-xl font-bold outline-none placeholder:text-gray-300 border-b border-transparent focus:border-primary pb-2 transition-colors"
+                            placeholder="여행 제목 (예: 홋카이도 겨울 여행)"
+                            className="w-full text-2xl font-black outline-none placeholder:text-gray-300 border-b border-transparent focus:border-primary pb-2 transition-colors text-gray-900"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                        />
-                        <textarea
-                            placeholder="어떤 여행이었나요? 간단한 소감을 남겨주세요."
-                            className="w-full text-base outline-none resize-none h-20 text-gray-600 placeholder:text-gray-300"
-                            value={caption}
-                            onChange={(e) => setCaption(e.target.value)}
                         />
                     </div>
 
@@ -122,13 +107,16 @@ export default function CreatePostPage() {
                         setEndDate={setEndDate}
                     />
 
+                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col gap-1">
+                        <p className="text-sm text-blue-800/80 font-medium">💡 이 곳에서는 사진이나 상세 소감 없이</p>
+                        <p className="text-sm text-blue-800/80 font-medium">시간과 장소만 기록하여 나만의 일정을 효율적으로 관리할 수 있습니다.</p>
+                    </div>
+
                     <SharedDayEditor
-                        days={dayPlans}
+                        days={days}
                         isLoaded={isLoaded}
                         sensors={sensors as any}
-                        updateDay={updateDayPlan}
-                        handleDayImageChange={handleDayImageChange}
-                        removeDayImage={removeDayImage}
+                        updateDay={updateDay}
                         addAction={addAction}
                         updateAction={updateAction}
                         removeAction={removeAction}

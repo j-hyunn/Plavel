@@ -1,8 +1,14 @@
 import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Calendar } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/gtag';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { Link2, User as UserIcon, UserPlus, UserMinus } from 'lucide-react';
 
 interface PostCardProps {
     id: string | number;
@@ -57,6 +63,69 @@ export default function PostCard({
     const [liked, setLiked] = useState(isLiked);
     const [bookmarked, setBookmarked] = useState(isBookmarked);
     const [likeCount, setLikeCount] = useState(likes);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [popoverOpen, setPopoverOpen] = useState(false);
+
+    useEffect(() => {
+        const checkFollow = async () => {
+            if (currentUserId && authorId && currentUserId !== String(authorId)) {
+                try {
+                    const { api } = await import('@/services/api');
+                    const following = await api.checkFollowStatus(currentUserId, String(authorId));
+                    setIsFollowing(following);
+                } catch (error) {
+                    console.error('Check follow status failed', error);
+                }
+            }
+        };
+        checkFollow();
+    }, [currentUserId, authorId]);
+
+    const handleToggleFollow = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!currentUserId) {
+            alert('로그인이 필요한 기능입니다.');
+            router.push('/login');
+            return;
+        }
+
+        const newFollowing = !isFollowing;
+        setIsFollowing(newFollowing);
+        setPopoverOpen(false);
+
+        try {
+            const { api } = await import('@/services/api');
+            if (newFollowing) {
+                await api.followUser(currentUserId, String(authorId));
+                trackEvent('follow_user', { target_user_id: String(authorId), action: 'follow' });
+            } else {
+                await api.unfollowUser(currentUserId, String(authorId));
+                trackEvent('follow_user', { target_user_id: String(authorId), action: 'unfollow' });
+            }
+        } catch (error) {
+            console.error('Follow toggle failed', error);
+            setIsFollowing(!newFollowing);
+        }
+    };
+
+    const handleCopyLink = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const url = `${window.location.origin}/p/${id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('링크가 클립보드에 복사되었습니다.');
+            setPopoverOpen(false);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    };
+
+    const handleViewProfile = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (authorId) {
+            router.push(`/u/${authorId}`);
+        }
+        setPopoverOpen(false);
+    };
 
     const handleLike = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -150,7 +219,50 @@ export default function PostCard({
                         )}
                     </div>
                 </div>
-                <MoreHorizontal className="w-5 h-5 text-gray-500 cursor-pointer" />
+                <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                    <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <MoreHorizontal className="w-5 h-5 text-gray-500 cursor-pointer hover:text-black transition-colors" />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 p-1" align="end" sideOffset={8}>
+                        <div className="flex flex-col py-1">
+                            {currentUserId !== String(authorId) && (
+                                <>
+                                    <button
+                                        onClick={handleToggleFollow}
+                                        className="flex items-center gap-3 px-3.5 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left"
+                                    >
+                                        {isFollowing ? (
+                                            <>
+                                                <UserMinus className="w-4.5 h-4.5 text-red-500" />
+                                                <span className="text-red-500 font-medium">팔로우 취소</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <UserPlus className="w-4.5 h-4.5 text-primary" />
+                                                <span className="text-primary font-bold">팔로우</span>
+                                            </>
+                                        )}
+                                    </button>
+                                    <div className="h-px bg-gray-100 my-1 mx-2" />
+                                </>
+                            )}
+                            <button
+                                onClick={handleCopyLink}
+                                className="flex items-center gap-3 px-3.5 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left text-gray-700"
+                            >
+                                <Link2 className="w-4.5 h-4.5" />
+                                <span>링크 복사</span>
+                            </button>
+                            <button
+                                onClick={handleViewProfile}
+                                className="flex items-center gap-3 px-3.5 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left text-gray-700"
+                            >
+                                <UserIcon className="w-4.5 h-4.5" />
+                                <span>프로필 보기</span>
+                            </button>
+                        </div>
+                    </PopoverContent>
+                </Popover>
             </div>
 
             {/* Travel Title Area */}

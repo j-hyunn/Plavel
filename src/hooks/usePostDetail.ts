@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { api } from '@/services/api';
 import type { User } from '@supabase/supabase-js';
 import { trackEvent } from '@/lib/gtag';
@@ -16,7 +15,7 @@ export function usePostDetail(postId: string) {
     useEffect(() => {
         const fetchPost = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const session = await api.getSession();
                 const userId = session?.user?.id;
                 if (session) setCurrentUser(session.user);
 

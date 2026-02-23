@@ -91,7 +91,7 @@ export default function PostDetailPage() {
                 </div>
             </header>
 
-            <main className="flex-1 pb-10 mx-auto w-full max-w-2xl bg-white md:my-8 md:rounded-2xl md:shadow-sm md:overflow-hidden md:h-fit">
+            <main className="flex-1 pb-10 mx-auto w-full max-w-2xl bg-white md:my-8 md:rounded-2xl md:shadow-sm md:h-fit">
                 <PostDetailHeader
                     post={post}
                     currentUser={currentUser}

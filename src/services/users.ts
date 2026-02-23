@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { handleSupabaseError } from '@/lib/error';
 import type { UserProfile, Post } from '@/types';
 
 export const usersApi = {
@@ -9,10 +10,7 @@ export const usersApi = {
             .eq('id', userId)
             .single();
 
-        if (userError) {
-            console.error('Supabase getUserProfile error:', userError.message, userError.details, userError.hint, userError.code);
-            throw userError;
-        }
+        if (userError) handleSupabaseError(userError, 'getUserProfile');
 
         const { data: posts, error: postsError } = await supabase
             .from('posts')
@@ -24,7 +22,7 @@ export const usersApi = {
             .eq('author_id', userId)
             .order('created_at', { ascending: false });
 
-        if (postsError) throw postsError;
+        if (postsError) handleSupabaseError(postsError, 'getUserProfile (posts)');
 
         const postsWithCounts = posts.map(post => ({
             ...post,
@@ -39,7 +37,7 @@ export const usersApi = {
         const { error } = await supabase
             .from('follows')
             .insert([{ follower_id: followerId, following_id: followingId }]);
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'followUser');
     },
 
     async unfollowUser(followerId: string, followingId: string) {
@@ -47,7 +45,7 @@ export const usersApi = {
             .from('follows')
             .delete()
             .match({ follower_id: followerId, following_id: followingId });
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'unfollowUser');
     },
 
     async checkFollowStatus(followerId: string, followingId: string): Promise<boolean> {
@@ -57,7 +55,7 @@ export const usersApi = {
             .match({ follower_id: followerId, following_id: followingId })
             .single();
 
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 is not found
+        if (error && error.code !== 'PGRST116') handleSupabaseError(error, 'checkFollowStatus');
         return !!data;
     },
 
@@ -66,6 +64,6 @@ export const usersApi = {
             .from('users')
             .update(updates)
             .eq('id', userId);
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'updateUserProfile');
     }
 };

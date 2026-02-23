@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { api } from '@/services/api';
 import type { UserProfile, Post } from '@/types';
 import type { TabType } from '@/components/profile/ProfileTabs';
@@ -26,7 +25,7 @@ export function useProfile(userId: string) {
 
     const fetchProfile = async () => {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = await api.getSession();
             let targetId = userId;
 
             if (session) setCurrentUserId(session.user.id);

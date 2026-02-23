@@ -30,16 +30,18 @@ export interface DayAction {
     lat?: number;
     lng?: number;
     google_types?: string[];
+    time?: string;
 }
 
 export interface DayPlan {
     id?: string;
     post_id?: string;
+    plan_id?: string;
     day_number: number;
     title: string;
-    description: string;
+    description?: string;
     actions: DayAction[];
-    images: string[];
+    images?: string[];
 }
 
 export interface Comment {

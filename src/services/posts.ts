@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { handleSupabaseError } from '@/lib/error';
 import type { Post, DayPlan, DayAction, Comment } from '@/types';
 
 type PartialCreatePostData = Pick<Post, 'author_id' | 'title' | 'caption' | 'images' | 'travel_start_date' | 'travel_end_date'>;
@@ -9,6 +10,7 @@ interface DbPlace {
     lat: number | null;
     lng: number | null;
     google_types: string[] | null;
+    time: string | null;
     sequence: number;
 }
 
@@ -25,10 +27,7 @@ export const postsApi = {
             `)
             .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error('Supabase getFeed error:', error.message, error.details, error.hint, error.code);
-            throw error;
-        }
+        if (error) handleSupabaseError(error, 'getFeed');
 
         return data.map(post => ({
             ...post,
@@ -50,16 +49,15 @@ export const postsApi = {
             .eq('id', postId)
             .single();
 
-        if (postError) {
-            console.error('Supabase getPostDetail error:', postError.message, postError.details, postError.hint, postError.code);
-            throw postError;
-        }
+        if (postError) handleSupabaseError(postError, 'getPostDetail');
 
         const { data: dayPlans, error: dayError } = await supabase
             .from('day_plans')
             .select('*, day_places(*)')
             .eq('post_id', postId)
             .order('day_number', { ascending: true });
+
+        if (dayError) handleSupabaseError(dayError, 'getPostDetail (day_plans)');
 
         if (dayPlans) {
             dayPlans.forEach(plan => {
@@ -68,8 +66,6 @@ export const postsApi = {
                 }
             });
         }
-
-        if (dayError) throw dayError;
 
         return {
             ...post,
@@ -87,10 +83,7 @@ export const postsApi = {
             .select()
             .single();
 
-        if (postError) {
-            console.error('Supabase post insert error:', postError.message, postError.details, postError.hint, postError.code);
-            throw postError;
-        }
+        if (postError) handleSupabaseError(postError, 'createPost');
 
         if (dayPlans.length > 0) {
             const plansWithId = dayPlans.map(plan => {
@@ -103,10 +96,7 @@ export const postsApi = {
                 .insert(plansWithId)
                 .select();
 
-            if (dayError) {
-                console.error('Supabase day_plans insert error:', dayError);
-                throw dayError;
-            }
+            if (dayError) handleSupabaseError(dayError, 'createPost (day_plans)');
 
             if (insertedPlans && insertedPlans.length > 0) {
                 const placesToInsert: DbPlace[] = [];
@@ -121,6 +111,7 @@ export const postsApi = {
                                     lat: action.lat || null,
                                     lng: action.lng || null,
                                     google_types: action.google_types || null,
+                                    time: action.time || null,
                                     sequence: aIdx,
                                 });
                             }
@@ -133,10 +124,7 @@ export const postsApi = {
                         .from('day_places')
                         .insert(placesToInsert);
 
-                    if (placesError) {
-                        console.error('Supabase day_places insert error:', placesError);
-                        throw placesError;
-                    }
+                    if (placesError) handleSupabaseError(placesError, 'createPost (day_places)');
                 }
             }
         }
@@ -149,7 +137,7 @@ export const postsApi = {
             .delete()
             .eq('id', postId);
 
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'deletePost');
     },
 
     async likePost(postId: string, userId: string) {
@@ -157,7 +145,7 @@ export const postsApi = {
             .from('likes')
             .insert([{ user_id: userId, post_id: postId }]);
 
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'likePost');
     },
 
     async unlikePost(postId: string, userId: string) {
@@ -166,14 +154,14 @@ export const postsApi = {
             .delete()
             .match({ user_id: userId, post_id: postId });
 
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'unlikePost');
     },
 
     async bookmarkPost(postId: string, userId: string) {
         const { error } = await supabase
             .from('bookmarks')
             .insert([{ user_id: userId, post_id: postId }]);
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'bookmarkPost');
     },
 
     async unbookmarkPost(postId: string, userId: string) {
@@ -181,7 +169,7 @@ export const postsApi = {
             .from('bookmarks')
             .delete()
             .match({ user_id: userId, post_id: postId });
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'unbookmarkPost');
     },
 
     async getSavedPosts(userId: string): Promise<(Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number })[]> {
@@ -199,7 +187,7 @@ export const postsApi = {
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'getSavedPosts');
 
         return data.map((b: any) => ({
             ...b.posts,
@@ -219,7 +207,7 @@ export const postsApi = {
             .eq('post_id', postId)
             .order('created_at', { ascending: true });
 
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'getComments');
         return data as unknown as Comment[];
     },
 
@@ -233,7 +221,7 @@ export const postsApi = {
             `)
             .single();
 
-        if (error) throw error;
+        if (error) handleSupabaseError(error, 'addComment');
         return data as unknown as Comment;
     }
 };

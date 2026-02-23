@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   title: "Plavel",
   description: "Travel Itinerary Community",
   icons: {
-    icon: "/applogo.svg",
-    apple: "/applogo.svg",
+    icon: "/appicon.svg",
+    apple: "/appicon.svg",
   },
   manifest: "/manifest.json",
   appleWebApp: {

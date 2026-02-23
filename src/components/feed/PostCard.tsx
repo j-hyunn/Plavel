@@ -215,7 +215,7 @@ export default function PostCard({
                         <img src={userImage} alt={username} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-bold text-sm text-gray-900 group-hover/card:text-primary transition-colors">{username}</span>
+                        <span className="font-bold text-sm text-gray-900">{username}</span>
                         <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-[10px] text-gray-400 font-medium">{timeAgo}</span>
                             {travelStartDate && (
@@ -349,7 +349,7 @@ export default function PostCard({
             {/* 3. Text Area */}
             <div className="p-4 space-y-3">
                 <div className="space-y-1">
-                    <h3 className="font-extrabold text-lg text-gray-900 leading-tight group-hover/card:text-primary transition-colors">{travelTitle}</h3>
+                    <h3 className="font-extrabold text-lg text-gray-900 leading-tight">{travelTitle}</h3>
                     <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{caption}</p>
                 </div>
 

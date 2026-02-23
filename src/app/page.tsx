@@ -10,11 +10,15 @@ import { DEFAULT_AVATAR } from '@/lib/constants';
 import { api } from '@/services/api';
 import { trackEvent } from '@/lib/gtag';
 import FeedSkeleton from '@/components/skeletons/FeedSkeleton';
+import { useAppCache } from '@/store/appCache';
 
 export default function Home() {
   const router = useRouter();
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { getFeed, setFeed } = useAppCache();
+  const cached = getFeed();
+
+  const [posts, setPosts] = useState<any[]>(cached ?? []);
+  const [loading, setLoading] = useState(!cached);
   const [userId, setUserId] = useState<string | null>(null);
 
   const fetchPosts = async () => {
@@ -25,6 +29,7 @@ export default function Home() {
     try {
       const feed = await api.getFeed(currentUserId);
       setPosts(feed);
+      setFeed(feed); // 캐시 저장
     } catch (error) {
       console.error('Error fetching feed:', error);
     }

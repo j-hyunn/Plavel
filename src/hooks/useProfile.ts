@@ -4,12 +4,15 @@ import { api } from '@/services/api';
 import type { UserProfile, Post } from '@/types';
 import type { TabType } from '@/components/profile/ProfileTabs';
 import { trackEvent } from '@/lib/gtag';
+import { useAppCache } from '@/store/appCache';
 
 export function useProfile(userId: string) {
     const router = useRouter();
+    const { getProfile, setProfile: cacheProfile } = useAppCache();
 
-    const [profile, setProfile] = useState<UserProfile | null>(null);
-    const [loading, setLoading] = useState(true);
+    const cached = userId !== 'me' ? getProfile(userId) : null;
+    const [profile, setProfile] = useState<UserProfile | null>(cached ?? null);
+    const [loading, setLoading] = useState(!cached);
     const [isOwnProfile, setIsOwnProfile] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -43,6 +46,7 @@ export function useProfile(userId: string) {
 
             const data = await api.getUserProfile(targetId);
             setProfile(data);
+            cacheProfile(targetId, data);
             setEditNickname(data.nickname || '');
             setEditBio(data.bio || '나만의 여행 일정을 공유합니다.');
 

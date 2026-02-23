@@ -3,13 +3,17 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/services/api';
 import type { User } from '@supabase/supabase-js';
 import { trackEvent } from '@/lib/gtag';
+import { useAppCache } from '@/store/appCache';
 
 export function usePostDetail(postId: string) {
     const router = useRouter();
-    const [post, setPost] = useState<any>(null);
+    const { getPost, setPost: cachePost } = useAppCache();
+
+    const cached = getPost(postId);
+    const [post, setPost] = useState<any>(cached ?? null);
     const [commentsCount, setCommentsCount] = useState<number>(0);
     const [initialComments, setInitialComments] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!cached);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
 
     useEffect(() => {
@@ -23,6 +27,7 @@ export function usePostDetail(postId: string) {
                 const commentsData = await api.getComments(postId);
 
                 setPost(postData);
+                cachePost(postId, postData);
                 setInitialComments(commentsData);
                 setCommentsCount(commentsData.length);
             } catch (error) {

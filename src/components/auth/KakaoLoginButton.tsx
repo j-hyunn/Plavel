@@ -29,10 +29,9 @@ export default function KakaoLoginButton() {
     return (
         <button
             onClick={handleLogin}
-            className="w-full flex items-center justify-center gap-2 bg-[#FEE500] text-[#191919] font-semibold py-2.5 px-4 rounded-lg hover:bg-[#FADA0A] transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-[#FEE500] text-[#191919] font-semibold py-3 px-4 rounded-xl hover:bg-[#FADA0A] transition-colors"
         >
-            {/* Kakao Icon placeholder */}
-            <span className="w-5 h-5 bg-[#191919] rounded-full flex items-center justify-center text-[10px] text-white">k</span>
+            <img src="/kakaologo.svg" alt="Kakao" className="w-5 h-5" />
             카카오로 로그인하기
         </button>
     );

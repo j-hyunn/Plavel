@@ -37,7 +37,7 @@ export default function PostDetailHeader({
         <>
             {/* Image Section */}
             {allPostImages.length > 0 && (
-                <div className="w-full bg-gray-50 border-b border-gray-100 p-0 relative group">
+                <div className="w-full bg-gray-50 border-b border-gray-100 p-0 relative group md:rounded-t-2xl overflow-hidden">
                     <div
                         className="w-full bg-gray-100 overflow-x-auto flex snap-x snap-mandatory scrollbar-none"
                         onScroll={(e) => {

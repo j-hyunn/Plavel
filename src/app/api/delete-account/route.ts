@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-// service_role key가 필요한 admin API
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -10,23 +9,48 @@ const supabaseAdmin = createClient(
 
 export async function DELETE(req: NextRequest) {
     try {
-        // 요청 헤더에서 현재 세션의 access token 꺼내기
+        // 1. 현재 유저 인증
         const authHeader = req.headers.get('Authorization');
         if (!authHeader?.startsWith('Bearer ')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const accessToken = authHeader.replace('Bearer ', '');
-
-        // access token으로 현재 유저 확인
         const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(accessToken);
+
         if (userError || !user) {
             return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
         }
 
         const userId = user.id;
 
-        // 1. 유저 데이터 삭제 (DB CASCADE로 게시글, 댓글, 좋아요, 팔로우 등 자동 삭제됨)
+        // 2. Kakao 유저 ID 가져오기 (identities에서 찾기)
+        const kakaoIdentity = user.identities?.find(id => id.provider === 'kakao');
+        const kakaoUserId = kakaoIdentity?.id;
+
+        // 3. Kakao 앱 연결 해제 (unlink) - 다음 로그인 시 동의 재요청
+        if (kakaoUserId && process.env.KAKAO_ADMIN_KEY) {
+            try {
+                const kakaoRes = await fetch('https://kapi.kakao.com/v1/user/unlink', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `KakaoAK ${process.env.KAKAO_ADMIN_KEY}`,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `target_id_type=user_id&target_id=${kakaoUserId}`,
+                });
+
+                if (!kakaoRes.ok) {
+                    const kakaoError = await kakaoRes.text();
+                    console.error('Kakao unlink error:', kakaoError);
+                    // Kakao unlink 실패해도 계속 진행 (Supabase 계정은 삭제)
+                }
+            } catch (kakaoErr) {
+                console.error('Kakao unlink request failed:', kakaoErr);
+            }
+        }
+
+        // 4. DB 프로필 삭제 (CASCADE → 게시글, 댓글, 좋아요, 팔로우 등 자동 삭제)
         const { error: profileError } = await supabaseAdmin
             .from('users')
             .delete()
@@ -37,7 +61,7 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ error: 'Failed to delete profile' }, { status: 500 });
         }
 
-        // 2. Supabase Auth 계정 삭제 (다음 카카오 로그인 시 재동의 필요)
+        // 5. Supabase Auth 계정 삭제
         const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
         if (authDeleteError) {
             console.error('Auth delete error:', authDeleteError);

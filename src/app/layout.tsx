@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   title: "Plavel",
   description: "Travel Itinerary Community",
   icons: {
-    icon: "/appicon.svg",
-    apple: "/appicon.svg",
+    icon: "/applogo.svg",
+    apple: "/applogo.svg",
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Plavel",
     startupImage: [
-      "/splash.png",
+      "/applogo.svg",
     ],
   },
 };

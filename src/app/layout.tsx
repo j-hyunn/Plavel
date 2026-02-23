@@ -23,6 +23,14 @@ export const metadata: Metadata = {
     apple: "/appicon.svg",
   },
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Plavel",
+    startupImage: [
+      "/splash.png",
+    ],
+  },
 };
 
 export default function RootLayout({

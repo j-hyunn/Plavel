@@ -4,6 +4,7 @@ import "./globals.css";
 import Script from 'next/script';
 import { GA_TRACKING_ID } from '@/lib/gtag';
 import { Toaster } from "@/components/ui/sonner";
+import PwaSplash from "@/components/layout/PwaSplash";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,6 +45,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <PwaSplash />
         <Toaster position="top-center" duration={2000} />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}

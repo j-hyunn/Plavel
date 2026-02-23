@@ -11,6 +11,7 @@ import ProfileCard from '@/components/profile/ProfileCard';
 import ProfileTabs, { TabType } from '@/components/profile/ProfileTabs';
 import ProfileGrid from '@/components/profile/ProfileGrid';
 import ProfileEditModal from '@/components/profile/ProfileEditModal';
+import ProfileSkeleton from '@/components/skeletons/ProfileSkeleton';
 
 export default function ProfilePage() {
     const params = useParams();
@@ -38,13 +39,7 @@ export default function ProfilePage() {
         handleFollow
     } = useProfile(userId);
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
-        );
-    }
+    if (loading) return <ProfileSkeleton />;
 
     if (!profile) return <div className="min-h-screen flex items-center justify-center">유저를 찾을 수 없습니다.</div>;
 

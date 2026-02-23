@@ -9,6 +9,7 @@ import PullToRefresh from '@/components/layout/PullToRefresh';
 import { DEFAULT_AVATAR } from '@/lib/constants';
 import { api } from '@/services/api';
 import { trackEvent } from '@/lib/gtag';
+import FeedSkeleton from '@/components/skeletons/FeedSkeleton';
 
 export default function Home() {
   const router = useRouter();
@@ -41,13 +42,7 @@ export default function Home() {
     trackEvent('view_feed', { method: window.innerWidth < 768 ? 'mobile' : 'web' });
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
+  if (loading) return <FeedSkeleton />;
 
   return (
     <div className="min-h-screen bg-white md:bg-gray-50">

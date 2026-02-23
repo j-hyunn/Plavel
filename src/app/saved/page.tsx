@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { api } from '@/services/api';
 import PostCard from '@/components/feed/PostCard';
 import { DEFAULT_AVATAR } from '@/lib/constants';
+import SavedSkeleton from '@/components/skeletons/SavedSkeleton';
 
 export default function SavedPage() {
     const router = useRouter();
@@ -35,13 +36,7 @@ export default function SavedPage() {
         fetchSavedPosts();
     }, [router]);
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
-        );
-    }
+    if (loading) return <SavedSkeleton />;
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans mb-16">

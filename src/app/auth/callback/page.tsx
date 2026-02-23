@@ -10,11 +10,25 @@ export default function AuthCallback() {
     useEffect(() => {
         const handleAuthCallback = async () => {
             const { error } = await supabase.auth.getSession();
+
+            // Try to get 'next' from URL, then from localStorage
+            const searchParams = new URLSearchParams(window.location.search);
+            let next = searchParams.get('next');
+
+            if (!next) {
+                next = localStorage.getItem('auth_nextRoot');
+            }
+
+            // Clean up
+            localStorage.removeItem('auth_nextRoot');
+
+            const targetPath = next || '/';
+
             if (!error) {
-                router.push('/');
+                router.replace(targetPath);
             } else {
                 console.error('Auth callback error:', error.message);
-                router.push('/login');
+                router.replace('/login');
             }
         };
 

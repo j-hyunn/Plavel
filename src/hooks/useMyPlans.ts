@@ -27,7 +27,10 @@ export function useMyPlans() {
         const init = async () => {
             const session = await api.getSession();
             if (!session?.user) {
-                if (mounted) setIsLoaded(true);
+                if (mounted) {
+                    setIsLoaded(true);
+                    router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+                }
                 return;
             }
             if (mounted) {

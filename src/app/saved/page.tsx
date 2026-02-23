@@ -17,7 +17,7 @@ export default function SavedPage() {
         const fetchSavedPosts = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
-                router.push('/login');
+                router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
                 return;
             }
 
@@ -67,6 +67,7 @@ export default function SavedPage() {
                                     })()}
                                     caption={post.caption || ''}
                                     likes={post.likes_count || 0}
+                                    commentsCount={post.comments_count || 0}
                                     timeAgo={new Date(post.created_at).toLocaleDateString()}
                                     travelStartDate={post.travel_start_date}
                                     travelEndDate={post.travel_end_date}

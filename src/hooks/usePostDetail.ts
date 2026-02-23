@@ -48,7 +48,7 @@ export function usePostDetail(postId: string) {
     const handleLike = async () => {
         if (!currentUser) {
             alert('로그인이 필요한 기능입니다.');
-            router.push('/login');
+            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
             return;
         }
         const newLiked = !post.isLiked;
@@ -76,7 +76,7 @@ export function usePostDetail(postId: string) {
     const handleBookmark = async () => {
         if (!currentUser) {
             alert('로그인이 필요한 기능입니다.');
-            router.push('/login');
+            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
             return;
         }
         const newBookmarked = !post.isBookmarked;

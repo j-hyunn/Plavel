@@ -10,7 +10,7 @@ export default function BottomNav() {
     const navItems = [
         { icon: <Home className="w-6 h-6" />, label: '피드', href: '/' },
         { icon: <Bookmark className="w-6 h-6" />, label: '저장', href: '/saved' },
-        { icon: <Calendar className="w-6 h-6" />, label: '내 일정', href: '/my-plans' },
+        { icon: <Calendar className="w-6 h-6" />, label: '내 여행', href: '/my-plans' },
         { icon: <User className="w-6 h-6" />, label: '프로필', href: '/u/me' },
     ];
 

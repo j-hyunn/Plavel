@@ -32,7 +32,7 @@ export function usePostUpload() {
     useEffect(() => {
         const checkUser = async () => {
             const session = await api.getSession();
-            if (!session) router.push('/login');
+            if (!session) router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
             else setUser(session.user);
         };
         checkUser();

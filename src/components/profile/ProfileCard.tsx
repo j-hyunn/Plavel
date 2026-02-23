@@ -64,7 +64,7 @@ export default function ProfileCard({
                                         <button
                                             onClick={async () => {
                                                 await supabase.auth.signOut();
-                                                router.push('/login');
+                                                router.push('/');
                                             }}
                                             className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-red-50 text-red-500 rounded-md transition-colors flex items-center gap-2.5"
                                         >

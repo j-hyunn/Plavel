@@ -15,7 +15,7 @@ interface DbPlace {
 }
 
 export const postsApi = {
-    async getFeed(userId?: string): Promise<(Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number })[]> {
+    async getFeed(userId?: string): Promise<(Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number; comments_count: number })[]> {
         const { data, error } = await supabase
             .from('posts')
             .select(`
@@ -23,6 +23,7 @@ export const postsApi = {
                 author:users!posts_author_id_fkey(nickname, avatar_url),
                 likes(user_id),
                 bookmarks(user_id),
+                comments(id),
                 day_plans(images)
             `)
             .order('created_at', { ascending: false });
@@ -32,19 +33,21 @@ export const postsApi = {
         return data.map(post => ({
             ...post,
             likes_count: post.likes?.length || 0,
+            comments_count: post.comments?.length || 0,
             isLiked: userId ? post.likes?.some((l: { user_id: string }) => l.user_id === userId) : false,
             isBookmarked: userId ? post.bookmarks?.some((b: { user_id: string }) => b.user_id === userId) : false,
-        })) as (Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number })[];
+        })) as (Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number; comments_count: number })[];
     },
 
-    async getPostDetail(postId: string, userId?: string): Promise<Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number; day_plans: DayPlan[] }> {
+    async getPostDetail(postId: string, userId?: string): Promise<Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number; comments_count: number; day_plans: DayPlan[] }> {
         const { data: post, error: postError } = await supabase
             .from('posts')
             .select(`
                 *,
                 author:users!posts_author_id_fkey(nickname, avatar_url),
                 likes(user_id),
-                bookmarks(user_id)
+                bookmarks(user_id),
+                comments(id)
             `)
             .eq('id', postId)
             .single();
@@ -71,9 +74,10 @@ export const postsApi = {
             ...post,
             day_plans: dayPlans,
             likes_count: post.likes?.length || 0,
+            comments_count: post.comments?.length || 0,
             isLiked: userId ? post.likes?.some((l: { user_id: string }) => l.user_id === userId) : false,
             isBookmarked: userId ? post.bookmarks?.some((b: { user_id: string }) => b.user_id === userId) : false,
-        } as unknown as (Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number; day_plans: DayPlan[] });
+        } as unknown as (Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number; comments_count: number; day_plans: DayPlan[] });
     },
 
     async createPost(postData: PartialCreatePostData, dayPlans: DayPlan[]) {
@@ -172,7 +176,7 @@ export const postsApi = {
         if (error) handleSupabaseError(error, 'unbookmarkPost');
     },
 
-    async getSavedPosts(userId: string): Promise<(Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number })[]> {
+    async getSavedPosts(userId: string): Promise<(Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number; comments_count: number })[]> {
         const { data, error } = await supabase
             .from('bookmarks')
             .select(`
@@ -181,7 +185,8 @@ export const postsApi = {
                     *,
                     author:users!posts_author_id_fkey(nickname, avatar_url),
                     likes(user_id),
-                    bookmarks(user_id)
+                    bookmarks(user_id),
+                    comments(id)
                 )
             `)
             .eq('user_id', userId)
@@ -192,9 +197,10 @@ export const postsApi = {
         return data.map((b: any) => ({
             ...b.posts,
             likes_count: b.posts.likes?.length || 0,
+            comments_count: b.posts.comments?.length || 0,
             isLiked: b.posts.likes?.some((l: { user_id: string }) => l.user_id === userId),
             isBookmarked: true,
-        })) as (Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number })[];
+        })) as (Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number; comments_count: number })[];
     },
 
     async getComments(postId: string): Promise<Comment[]> {

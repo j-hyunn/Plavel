@@ -81,6 +81,7 @@ export default function Home() {
                     })()}
                     caption={post.caption || ''}
                     likes={post.likes_count || 0}
+                    commentsCount={post.comments_count || 0}
                     timeAgo={new Date(post.created_at).toLocaleDateString()}
                     travelStartDate={post.travel_start_date}
                     travelEndDate={post.travel_end_date}

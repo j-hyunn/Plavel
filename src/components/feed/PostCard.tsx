@@ -1,5 +1,5 @@
 import { useRouter } from 'next/navigation';
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Calendar } from 'lucide-react';
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/gtag';
@@ -18,6 +18,7 @@ interface PostCardProps {
     postImage: string | string[];
     caption: string;
     likes: number;
+    commentsCount: number;
     timeAgo: string;
     travelStartDate?: string;
     travelEndDate?: string;
@@ -35,6 +36,7 @@ export default function PostCard({
     postImage,
     caption,
     likes,
+    commentsCount,
     timeAgo,
     travelStartDate,
     travelEndDate,
@@ -65,6 +67,16 @@ export default function PostCard({
     const [likeCount, setLikeCount] = useState(likes);
     const [isFollowing, setIsFollowing] = useState(false);
     const [popoverOpen, setPopoverOpen] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    const scrollToImage = (index: number) => {
+        if (!scrollRef.current) return;
+        const width = scrollRef.current.clientWidth;
+        scrollRef.current.scrollTo({
+            left: width * index,
+            behavior: 'smooth'
+        });
+    };
 
     useEffect(() => {
         const checkFollow = async () => {
@@ -85,7 +97,7 @@ export default function PostCard({
         e.stopPropagation();
         if (!currentUserId) {
             alert('로그인이 필요한 기능입니다.');
-            router.push('/login');
+            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
             return;
         }
 
@@ -131,7 +143,7 @@ export default function PostCard({
         e.stopPropagation();
         if (!currentUserId) {
             alert('로그인이 필요한 기능입니다.');
-            router.push('/login');
+            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
             return;
         }
         const newLiked = !liked;
@@ -156,7 +168,7 @@ export default function PostCard({
         e.stopPropagation();
         if (!currentUserId) {
             alert('로그인이 필요한 기능입니다.');
-            router.push('/login');
+            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
             return;
         }
         const newBookmarked = !bookmarked;
@@ -188,42 +200,41 @@ export default function PostCard({
     return (
         <div
             onClick={() => router.push(`/p/${id}`)}
-            className="overflow-hidden mb-4 sm:mb-8 w-full sm:max-w-[470px] mx-auto bg-white border-none sm:border border-[var(--border)] sm:rounded-md sm:shadow-sm transition-all cursor-pointer"
+            className="overflow-hidden mb-6 sm:mb-10 w-full sm:max-w-[480px] mx-auto bg-white border-none sm:border border-[var(--border)] sm:rounded-2xl sm:shadow-sm transition-all cursor-pointer group/card"
         >
-            {/* Header */}
-            <div className="flex items-center justify-between p-3">
+            {/* 1. Profile Section */}
+            <div className="flex items-center justify-between p-4">
                 <div
-                    className="flex items-center gap-3 cursor-pointer group"
+                    className="flex items-center gap-3 cursor-pointer"
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (!currentUserId) {
-                            alert('로그인이 필요한 기능입니다.');
-                            router.push('/login');
-                            return;
-                        }
-                        if (authorId) {
-                            router.push(`/u/${authorId}`);
-                        }
+                        if (authorId) router.push(`/u/${authorId}`);
                     }}
                 >
-                    <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 group-hover:opacity-80 transition-opacity">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 flex-shrink-0">
                         <img src={userImage} alt={username} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-semibold text-sm">{username}</span>
-                        {travelStartDate && (
-                            <div className="flex items-center gap-1 text-[10px] text-[var(--secondary-text)]">
-                                <Calendar className="w-2.5 h-2.5" />
-                                <span>{travelStartDate} {travelEndDate ? `~ ${travelEndDate}` : ''}</span>
-                            </div>
-                        )}
+                        <span className="font-bold text-sm text-gray-900 group-hover/card:text-primary transition-colors">{username}</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-gray-400 font-medium">{timeAgo}</span>
+                            {travelStartDate && (
+                                <>
+                                    <span className="text-[10px] text-gray-300">•</span>
+                                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                                        <Calendar className="w-2.5 h-2.5" />
+                                        <span>{travelStartDate} {travelEndDate ? `~ ${travelEndDate}` : ''}</span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                     <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}>
-                        <MoreHorizontal className="w-5 h-5 text-gray-500 cursor-pointer hover:text-black transition-colors" />
+                        <MoreHorizontal className="w-5 h-5 text-gray-400 cursor-pointer hover:text-black transition-colors" />
                     </PopoverTrigger>
-                    <PopoverContent className="w-48 p-1" align="end" sideOffset={8}>
+                    <PopoverContent className="w-48 p-1 rounded-xl shadow-xl border-gray-100" align="end" sideOffset={8}>
                         <div className="flex flex-col py-1">
                             {currentUserId !== String(authorId) && (
                                 <>
@@ -246,17 +257,11 @@ export default function PostCard({
                                     <div className="h-px bg-gray-100 my-1 mx-2" />
                                 </>
                             )}
-                            <button
-                                onClick={handleCopyLink}
-                                className="flex items-center gap-3 px-3.5 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left text-gray-700"
-                            >
+                            <button onClick={handleCopyLink} className="flex items-center gap-3 px-3.5 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left text-gray-700">
                                 <Link2 className="w-4.5 h-4.5" />
                                 <span>링크 복사</span>
                             </button>
-                            <button
-                                onClick={handleViewProfile}
-                                className="flex items-center gap-3 px-3.5 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left text-gray-700"
-                            >
+                            <button onClick={handleViewProfile} className="flex items-center gap-3 px-3.5 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left text-gray-700">
                                 <UserIcon className="w-4.5 h-4.5" />
                                 <span>프로필 보기</span>
                             </button>
@@ -265,15 +270,11 @@ export default function PostCard({
                 </Popover>
             </div>
 
-            {/* Travel Title Area */}
-            <div className="px-3 pb-2">
-                <h3 className="font-bold text-base leading-tight">{travelTitle}</h3>
-            </div>
-
-            {/* Image Carousel */}
-            <div className="relative group">
+            {/* 2. Feed Image Area */}
+            <div className="relative group/carousel">
                 <div
-                    className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none aspect-square bg-gray-100"
+                    ref={scrollRef}
+                    className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none aspect-square bg-gray-50"
                     onScroll={handleScroll}
                 >
                     {images.map((img, idx) => (
@@ -281,47 +282,87 @@ export default function PostCard({
                             <img
                                 src={img}
                                 alt={travelTitle}
-                                className="w-full h-full object-cover transition-transform duration-700"
+                                className="w-full h-full object-cover"
                             />
                         </div>
                     ))}
                 </div>
 
+                {/* Desktop Navigation Buttons */}
+                {images.length > 1 && (
+                    <>
+                        {currentImageIdx > 0 && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    scrollToImage(currentImageIdx - 1);
+                                }}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-gray-800 flex items-center justify-center shadow-md backdrop-blur-sm transition-all opacity-0 group-hover/carousel:opacity-100 hidden sm:flex z-20"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                        )}
+                        {currentImageIdx < images.length - 1 && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    scrollToImage(currentImageIdx + 1);
+                                }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-gray-800 flex items-center justify-center shadow-md backdrop-blur-sm transition-all opacity-0 group-hover/carousel:opacity-100 hidden sm:flex z-20"
+                            >
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        )}
+                    </>
+                )}
+
                 {/* Dot Indicators */}
                 {images.length > 1 && (
-                    <div className="absolute outline-none bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none">
+                    <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none">
                         {images.map((_, idx) => (
                             <div
                                 key={idx}
-                                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 shadow-[0_1px_2px_rgba(0,0,0,0.4)] ${idx === currentImageIdx ? 'bg-primary scale-110' : 'bg-white/70'}`}
+                                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 shadow-[0_1px_2px_rgba(0,0,0,0.3)] ${idx === currentImageIdx ? 'bg-primary scale-125' : 'bg-white/60'}`}
                             />
                         ))}
                     </div>
                 )}
             </div>
 
-            {/* Actions */}
-            <div className="p-3">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-4">
-                        <Heart onClick={handleLike} className={cn("w-6 h-6 cursor-pointer hover:text-gray-500 transition-colors", liked ? "fill-red-500 text-red-500 hover:text-red-600" : "")} />
-                        <MessageCircle onClick={(e) => { e.stopPropagation(); router.push(`/p/${id}`); }} className="w-6 h-6 cursor-pointer hover:text-gray-500 transition-colors" />
-                    </div>
-                    <Bookmark onClick={handleBookmark} className={cn("w-6 h-6 cursor-pointer hover:text-gray-500 transition-colors", bookmarked ? "fill-black text-black" : "")} />
+            {/* 2-2. Actions (Like, Comment, Save) */}
+            <div className="px-4 py-3 flex items-center justify-between border-b border-gray-50">
+                <div className="flex items-center gap-5">
+                    <button onClick={handleLike} className="flex items-center gap-1.5 group/btn">
+                        <Heart className={cn("w-6 h-6 transition-all", liked ? "fill-red-500 text-red-500 scale-110" : "text-gray-700 group-hover/btn:text-red-400 group-hover/btn:scale-110")} />
+                        <span className={cn("text-xs font-bold", liked ? "text-red-500" : "text-gray-500")}>{likeCount.toLocaleString()}</span>
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); router.push(`/p/${id}`); }} className="flex items-center gap-1.5 group/btn">
+                        <MessageCircle className="w-6 h-6 text-gray-700 group-hover/btn:text-primary group-hover/btn:scale-110 transition-all" />
+                        <span className="text-xs font-bold text-gray-500">{commentsCount.toLocaleString()}</span>
+                    </button>
+                </div>
+                <button onClick={handleBookmark} className="group/btn">
+                    <Bookmark className={cn("w-6 h-6 transition-all", bookmarked ? "fill-black text-black scale-110" : "text-gray-700 group-hover/btn:text-black group-hover/btn:scale-110")} />
+                </button>
+            </div>
+
+            {/* 3. Text Area */}
+            <div className="p-4 space-y-3">
+                <div className="space-y-1">
+                    <h3 className="font-extrabold text-lg text-gray-900 leading-tight group-hover/card:text-primary transition-colors">{travelTitle}</h3>
+                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{caption}</p>
                 </div>
 
-                {/* Info */}
-                <div className="space-y-1">
-                    <p className="font-semibold text-sm">좋아요 {likeCount.toLocaleString()}개</p>
-                    <div className="text-sm">
-                        <span className="font-semibold mr-2">{username}</span>
-                        <span className="whitespace-pre-wrap">{caption}</span>
-                    </div>
-                    <div className="text-[var(--secondary-text)] text-sm block">
-                        일정 상세보기...
-                    </div>
-                    <p className="text-[10px] text-[var(--secondary-text)] uppercase">{timeAgo}</p>
-                </div>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/p/${id}`);
+                    }}
+                    className="w-full py-3 bg-gray-50 hover:bg-primary/5 text-gray-800 hover:text-primary rounded-xl font-bold text-sm transition-all border border-gray-100 flex items-center justify-center gap-2 group/go"
+                >
+                    <span>여행 일정 확인하기</span>
+                    <Link2 className="w-3.5 h-3.5 group-hover/go:translate-x-0.5 transition-transform" />
+                </button>
             </div>
         </div>
     );

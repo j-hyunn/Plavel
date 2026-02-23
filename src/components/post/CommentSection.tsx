@@ -22,7 +22,7 @@ export default function CommentSection({ postId, currentUser, initialComments }:
     const handleProfileClick = (authorId: string) => {
         if (!currentUser) {
             alert('로그인이 필요한 기능입니다.');
-            router.push('/login');
+            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
             return;
         }
         router.push(`/u/${authorId}`);
@@ -33,7 +33,7 @@ export default function CommentSection({ postId, currentUser, initialComments }:
         if (!newComment.trim()) return;
         if (!currentUser) {
             alert('로그인이 필요한 기능입니다.');
-            router.push('/login');
+            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
             return;
         }
 

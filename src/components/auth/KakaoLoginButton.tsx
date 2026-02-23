@@ -4,10 +4,20 @@ import { supabase } from '@/lib/supabase';
 
 export default function KakaoLoginButton() {
     const handleLogin = async () => {
+        const searchParams = new URLSearchParams(window.location.search);
+        const next = searchParams.get('next');
+
+        if (next) {
+            localStorage.setItem('auth_nextRoot', next);
+        }
+
+        const callbackUrl = new URL(window.location.origin + '/auth/callback');
+        if (next) callbackUrl.searchParams.set('next', next);
+
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'kakao',
             options: {
-                redirectTo: window.location.origin + '/auth/callback',
+                redirectTo: callbackUrl.toString(),
             },
         });
 

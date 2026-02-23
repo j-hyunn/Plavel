@@ -2,11 +2,17 @@
 
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Calendar, Map, Plus, ArrowRight, Trash2, MapPin } from 'lucide-react';
+import { Calendar, Map, Plus, ArrowRight, Trash2, MapPin, MoreHorizontal, Link2 } from 'lucide-react';
 import BottomNav from '@/components/layout/BottomNav';
 import { useMyPlans } from '@/hooks/useMyPlans';
 import { trackEvent } from '@/lib/gtag';
 import { useEffect } from 'react';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { toast } from 'sonner';
 
 export default function MyPlansPage() {
     const router = useRouter();
@@ -15,6 +21,16 @@ export default function MyPlansPage() {
     useEffect(() => {
         trackEvent('view_my_plans');
     }, []);
+
+    const handleShare = (planId: string) => {
+        const url = `${window.location.origin}/my-plans/${planId}`;
+        navigator.clipboard.writeText(url).then(() => {
+            toast.success('여행 링크가 복사되었습니다.');
+        }).catch(err => {
+            console.error('Failed to copy link: ', err);
+            toast.error('링크 복사에 실패했습니다.');
+        });
+    };
 
     if (!isLoaded) {
         return (
@@ -26,20 +42,17 @@ export default function MyPlansPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans pb-24">
-            <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-4">
-                <h1 className="text-xl font-bold text-gray-900">내 일정</h1>
+            <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-4 flex items-center justify-between">
+                <h1 className="text-xl font-bold text-gray-900">내 여행</h1>
+                <button
+                    onClick={() => router.push('/my-plans/create')}
+                    className="text-sm font-bold text-primary hover:text-primary/80 transition-colors"
+                >
+                    + 여행 추가
+                </button>
             </header>
 
             <main className="flex-1 w-full max-w-2xl mx-auto p-4 space-y-4">
-                <button
-                    onClick={() => router.push('/my-plans/create')}
-                    className="w-full bg-white border border-dashed border-primary/40 hover:border-primary hover:bg-primary/5 transition-all outline-none rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-primary"
-                >
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Plus className="w-6 h-6 text-primary" />
-                    </div>
-                    <span className="font-bold">새로운 여행 일정 만들기</span>
-                </button>
 
                 {plans.length === 0 ? (
                     <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
@@ -62,17 +75,39 @@ export default function MyPlansPage() {
                                 >
                                     <div className="flex justify-between items-start mb-3">
                                         <h3 className="font-bold text-lg text-gray-900 line-clamp-1">{plan.title}</h3>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (confirm('이 일정을 삭제하시겠습니까?')) {
-                                                    deletePlan(plan.id);
-                                                }
-                                            }}
-                                            className="p-1 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        <Popover>
+                                            <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                <button className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                                                    <MoreHorizontal className="w-5 h-5" />
+                                                </button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-36 p-1 rounded-xl shadow-xl border-gray-100" align="end" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex flex-col">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleShare(plan.id);
+                                                        }}
+                                                        className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                                                    >
+                                                        <Link2 className="w-4 h-4" />
+                                                        <span>여행 공유</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (confirm('이 여행을 삭제하시겠습니까?')) {
+                                                                deletePlan(plan.id);
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors text-left font-medium"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                        <span>여행 삭제</span>
+                                                    </button>
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
 
                                     <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">

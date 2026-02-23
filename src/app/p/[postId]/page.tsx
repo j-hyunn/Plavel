@@ -71,7 +71,7 @@ export default function PostDetailPage() {
                     onClick={() => {
                         if (!currentUser) {
                             alert('로그인이 필요한 기능입니다.');
-                            router.push('/login');
+                            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
                             return;
                         }
                         router.push(`/u/${post.author_id}`);
@@ -105,6 +105,7 @@ export default function PostDetailPage() {
                     dayPlans={post.day_plans || []}
                     isMapLoaded={isLoaded}
                     onImageClick={openFullscreen}
+                    currentUser={currentUser}
                 />
 
                 <div className="px-5">

@@ -32,7 +32,7 @@ export function useProfile(userId: string) {
 
             if (userId === 'me') {
                 if (!session) {
-                    router.push('/login');
+                    router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
                     return;
                 }
                 targetId = session.user.id;
@@ -88,7 +88,7 @@ export function useProfile(userId: string) {
         if (!profile) return;
         if (!currentUserId) {
             alert('로그인이 필요한 기능입니다.');
-            router.push('/login');
+            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
             return;
         }
         try {

@@ -1,20 +1,24 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { MapPin, CalendarPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DayPlan } from '@/types';
 import ScrapPlanModal from './ScrapPlanModal';
 import MapRouteRenderer, { MapPlace } from './MapRouteRenderer';
 import PlaceItem from './PlaceItem';
+import type { User } from '@supabase/supabase-js';
 
 interface DayPlanListProps {
     dayPlans: DayPlan[];
     isMapLoaded: boolean;
     onImageClick: (url: string, allImages: string[]) => void;
+    currentUser: User | null;
 }
 
-export default function DayPlanList({ dayPlans, isMapLoaded, onImageClick }: DayPlanListProps) {
+export default function DayPlanList({ dayPlans, isMapLoaded, onImageClick, currentUser }: DayPlanListProps) {
+    const router = useRouter();
     const [selectedMapDay, setSelectedMapDay] = useState<number | 'all'>('all');
     const [scrapDayData, setScrapDayData] = useState<DayPlan | null>(null);
 
@@ -118,7 +122,14 @@ export default function DayPlanList({ dayPlans, isMapLoaded, onImageClick }: Day
                                     <span className="text-base font-black text-primary">D{day.day_number}</span>
                                 </div>
                                 <button
-                                    onClick={() => setScrapDayData(day)}
+                                    onClick={() => {
+                                        if (!currentUser) {
+                                            alert('로그인이 필요한 기능입니다.');
+                                            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+                                            return;
+                                        }
+                                        setScrapDayData(day);
+                                    }}
                                     className="flex flex-col items-center gap-1 text-primary hover:text-primary/70 transition-colors"
                                     title="일정 담기"
                                 >

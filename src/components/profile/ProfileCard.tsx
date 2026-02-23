@@ -1,4 +1,4 @@
-import { Settings, User, LogOut } from 'lucide-react';
+import { Settings, User, LogOut, UserX } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import type { UserProfile } from '@/types';
@@ -26,6 +26,31 @@ export default function ProfileCard({
     onFollowClick
 }: ProfileCardProps) {
     const router = useRouter();
+
+    const handleDeleteAccount = async () => {
+        const confirmed = window.confirm(
+            '정말로 탈퇴하시겠습니까?\n\n탈퇴 시 모든 데이터(게시글, 댓글, 좋아요 등)가 삭제되며 복구할 수 없습니다.'
+        );
+        if (!confirmed) return;
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const res = await fetch('/api/delete-account', {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+
+            if (!res.ok) throw new Error('Delete failed');
+
+            await supabase.auth.signOut();
+            router.replace('/login');
+        } catch (err) {
+            console.error(err);
+            alert('회원 탈퇴 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        }
+    };
 
     return (
         <div className="bg-[#F2F2F2] rounded-[32px] p-6 mb-8 w-full mx-auto shadow-sm">
@@ -70,6 +95,14 @@ export default function ProfileCard({
                                         >
                                             <LogOut className="w-4 h-4" />
                                             로그아웃
+                                        </button>
+                                        <div className="h-px bg-gray-100 my-1 mx-1" />
+                                        <button
+                                            onClick={handleDeleteAccount}
+                                            className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-red-50 text-red-400 rounded-md transition-colors flex items-center gap-2.5"
+                                        >
+                                            <UserX className="w-4 h-4" />
+                                            회원 탈퇴
                                         </button>
                                     </div>
                                 </PopoverContent>

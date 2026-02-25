@@ -2,13 +2,14 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ChevronLeft, Calendar, MapPin, Clock, ExternalLink, Plane, Utensils, Pencil } from 'lucide-react';
+import { ChevronLeft, Calendar, MapPin, Clock, ExternalLink, Plane, Utensils, BedDouble, Train, MoreHorizontal, Share2, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useLoadScript, GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
 
 import { useMyPlans } from '@/hooks/useMyPlans';
 import type { MyPlan } from '@/types/plan';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
 
@@ -98,9 +99,10 @@ export default function PlanDetailPage() {
     const router = useRouter();
     const planId = params.planId as string;
 
-    const { getPlan, isLoaded } = useMyPlans();
+    const { getPlan, isLoaded, deletePlan } = useMyPlans();
     const [plan, setPlan] = useState<MyPlan | null>(null);
     const [selectedMapDay, setSelectedMapDay] = useState<number | 'all'>('all');
+    const [popoverOpen, setPopoverOpen] = useState(false);
 
     const { isLoaded: isMapLoaded } = useLoadScript({
         googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
@@ -136,10 +138,50 @@ export default function PlanDetailPage() {
                 <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500 ml-2">
                     내 일정 상세
                 </h1>
-                <button onClick={() => router.push(`/my-plans/${planId}/edit`)} className="p-1 flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-primary transition-colors bg-white border border-gray-200 shadow-sm rounded-full px-3 py-1.5">
-                    <Pencil className="w-3.5 h-3.5" />
-                    수정
-                </button>
+                <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                    <PopoverTrigger asChild>
+                        <button className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500">
+                            <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-44 p-1.5 z-[100]" align="end" sideOffset={8}>
+                        <div className="flex flex-col gap-0.5">
+                            <button
+                                onClick={() => {
+                                    const url = `${window.location.origin}/my-plans/${planId}`;
+                                    navigator.clipboard.writeText(url).then(() => {
+                                        alert('링크가 클립보드에 복사되었습니다.');
+                                        setPopoverOpen(false);
+                                    });
+                                }}
+                                className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors w-full text-left"
+                            >
+                                <Share2 className="w-4 h-4 text-gray-500" />
+                                여행 공유
+                            </button>
+                            <button
+                                onClick={() => { router.push(`/my-plans/${planId}/edit`); setPopoverOpen(false); }}
+                                className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors w-full text-left"
+                            >
+                                <Pencil className="w-4 h-4 text-gray-500" />
+                                수정
+                            </button>
+                            <div className="h-px bg-gray-100 mx-2 my-0.5" />
+                            <button
+                                onClick={async () => {
+                                    if (!confirm('이 여행 일정을 삭제하시겠어요?')) return;
+                                    await deletePlan(planId as string);
+                                    router.replace('/my-plans');
+                                    setPopoverOpen(false);
+                                }}
+                                className="flex items-center gap-3 px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors w-full text-left"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                삭제
+                            </button>
+                        </div>
+                    </PopoverContent>
+                </Popover>
             </header>
 
             <main className="flex-1 pb-10 mx-auto w-full max-w-2xl bg-white md:my-8 md:rounded-2xl md:shadow-sm md:h-fit">
@@ -247,7 +289,14 @@ export default function PlanDetailPage() {
                                                             name.includes('restaurant') || name.includes('cafe') || name.includes('bistro') ||
                                                             name.includes('dining') || name.includes('chez') || name.includes('bar') ||
                                                             googleTypes.some((t: string) => ['restaurant', 'food', 'cafe', 'bar', 'bakery', 'meal_takeaway', 'meal_delivery'].includes(t));
-                                                        const Icon = isAirport ? Plane : (isFood ? Utensils : MapPin);
+                                                        const isLodging = name.includes('호텔') || name.includes('숙소') || name.includes('호스텔') ||
+                                                            name.includes('모텔') || name.includes('airbnb') || name.includes('hotel') ||
+                                                            name.includes('hostel') || name.includes('resort') || name.includes('inn') ||
+                                                            googleTypes.some((t: string) => ['lodging', 'hotel', 'motel', 'hostel', 'spa', 'campground'].includes(t));
+                                                        const isTrain = name.includes('역') || name.includes('기차') || name.includes('열차') ||
+                                                            name.includes('station') || name.includes('train') || name.includes('rail') ||
+                                                            googleTypes.some((t: string) => ['train_station', 'transit_station', 'subway_station', 'light_rail_station', 'bus_station'].includes(t));
+                                                        const Icon = isAirport ? Plane : isLodging ? BedDouble : isTrain ? Train : (isFood ? Utensils : MapPin);
 
                                                         const prevAction = pIdx > 0 ? day.actions[pIdx - 1] : null;
                                                         const distance = prevAction && prevAction.lat && prevAction.lng && action.lat && action.lng

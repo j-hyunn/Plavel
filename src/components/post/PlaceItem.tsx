@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ExternalLink, MapPin, Plane, Utensils } from 'lucide-react';
+import { ExternalLink, MapPin, Plane, Utensils, BedDouble, Train } from 'lucide-react';
 import { getDistance } from '@/lib/geo';
 
 interface PlaceItemProps {
@@ -20,8 +20,15 @@ export default function PlaceItem({ place, prevPlace }: PlaceItemProps) {
         name.includes('restaurant') || name.includes('cafe') || name.includes('bistro') ||
         name.includes('dining') || name.includes('chez') || name.includes('bar') ||
         googleTypes.some((t: string) => ['restaurant', 'food', 'cafe', 'bar', 'bakery', 'meal_takeaway', 'meal_delivery'].includes(t));
+    const isLodging = name.includes('호텔') || name.includes('숙소') || name.includes('호스텔') ||
+        name.includes('모텔') || name.includes('airbnb') || name.includes('hotel') ||
+        name.includes('hostel') || name.includes('resort') || name.includes('inn') ||
+        googleTypes.some((t: string) => ['lodging', 'hotel', 'motel', 'hostel', 'spa', 'campground'].includes(t));
+    const isTrain = name.includes('역') || name.includes('기차') || name.includes('열차') ||
+        name.includes('station') || name.includes('train') || name.includes('rail') ||
+        googleTypes.some((t: string) => ['train_station', 'transit_station', 'subway_station', 'light_rail_station', 'bus_station'].includes(t));
 
-    const Icon = isAirport ? Plane : (isFood ? Utensils : MapPin);
+    const Icon = isAirport ? Plane : isLodging ? BedDouble : isTrain ? Train : (isFood ? Utensils : MapPin);
 
     const distance = prevPlace && prevPlace.lat && prevPlace.lng && place.lat && place.lng
         ? getDistance(prevPlace.lat, prevPlace.lng, place.lat, place.lng)

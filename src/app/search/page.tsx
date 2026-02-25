@@ -6,7 +6,7 @@ import { Search, X, Loader2 } from 'lucide-react';
 import BottomNav from '@/components/layout/BottomNav';
 import { api } from '@/services/api';
 import type { Post } from '@/types';
-import PostCard from '@/components/feed/PostCard';
+import SearchResultItem from '@/components/search/SearchResultItem';
 import { DEFAULT_AVATAR } from '@/lib/constants';
 import { trackEvent } from '@/lib/gtag';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -111,32 +111,30 @@ export default function SearchPage() {
                         <p className="text-sm text-gray-500">궁금한 여행지나 키워드를 입력해보세요.</p>
                     </div>
                 ) : (
-                    <div className="pt-4 px-0 sm:px-4 flex flex-col items-center">
+                    <div className="pt-2 px-0 w-full flex flex-col items-center">
                         <div className="w-full sm:max-w-[470px]">
-                            {results.map((post: any) => (
-                                <PostCard
-                                    key={post.id}
-                                    id={post.id}
-                                    username={post.author?.nickname || 'Unknown'}
-                                    userImage={post.author?.avatar_url || DEFAULT_AVATAR}
-                                    travelTitle={post.title}
-                                    postImage={(() => {
-                                        const all = [...(post.images || [])];
-                                        post.day_plans?.forEach((dp: any) => { if (dp.images && Array.isArray(dp.images)) all.push(...dp.images); });
-                                        return all;
-                                    })()}
-                                    caption={post.caption || ''}
-                                    likes={post.likes_count || 0}
-                                    commentsCount={post.comments_count || 0}
-                                    timeAgo={new Date(post.created_at).toLocaleDateString()}
-                                    travelStartDate={post.travel_start_date}
-                                    travelEndDate={post.travel_end_date}
-                                    isLiked={post.isLiked}
-                                    isBookmarked={post.isBookmarked}
-                                    currentUserId={userId || undefined}
-                                    authorId={post.author_id}
-                                />
-                            ))}
+                            {results.map((post: any) => {
+                                const allImages = [...(post.images || [])];
+                                post.day_plans?.forEach((dp: any) => { if (dp.images && Array.isArray(dp.images)) allImages.push(...dp.images); });
+                                const displayImage = allImages.length > 0 ? allImages[0] : '';
+
+                                return (
+                                    <SearchResultItem
+                                        key={post.id}
+                                        id={post.id}
+                                        title={post.title}
+                                        caption={post.caption || ''}
+                                        image={displayImage}
+                                        authorName={post.author?.nickname || 'Unknown'}
+                                        authorImage={post.author?.avatar_url || DEFAULT_AVATAR}
+                                        likesCount={post.likes_count || 0}
+                                        commentsCount={post.comments_count || 0}
+                                        timeAgo={new Date(post.created_at).toLocaleDateString()}
+                                        travelStartDate={post.travel_start_date}
+                                        travelEndDate={post.travel_end_date}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
                 )}

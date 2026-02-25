@@ -102,7 +102,7 @@ export default function SortableAction({ action, actionIndex, idx, isLoaded, upd
                                         className="bg-transparent outline-none cursor-pointer appearance-none text-left w-5 hover:text-primary transition-colors"
                                     >
                                         <option value="" disabled hidden>분</option>
-                                        {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(mVal => (
+                                        {Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0')).map(mVal => (
                                             <option key={mVal} value={mVal} className="text-gray-800">{mVal}</option>
                                         ))}
                                     </select>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Home, Bookmark, Calendar, User, Plus } from 'lucide-react';
+import { Home, Bookmark, Calendar, User, Plus, Search } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export default function BottomNav() {
@@ -9,7 +9,7 @@ export default function BottomNav() {
 
     const navItems = [
         { icon: <Home className="w-6 h-6" />, label: '피드', href: '/' },
-        { icon: <Bookmark className="w-6 h-6" />, label: '저장', href: '/saved' },
+        { icon: <Search className="w-6 h-6" />, label: '검색', href: '/search' },
         { icon: <Calendar className="w-6 h-6" />, label: '내 여행', href: '/my-plans' },
         { icon: <User className="w-6 h-6" />, label: '프로필', href: '/u/me' },
     ];

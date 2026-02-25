@@ -229,5 +229,30 @@ export const postsApi = {
 
         if (error) handleSupabaseError(error, 'addComment');
         return data as unknown as Comment;
+    },
+
+    async searchPosts(query: string, userId?: string): Promise<(Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number; comments_count: number })[]> {
+        const { data, error } = await supabase
+            .from('posts')
+            .select(`
+                *,
+                author:users!posts_author_id_fkey(nickname, avatar_url),
+                likes(user_id),
+                bookmarks(user_id),
+                comments(id),
+                day_plans(images)
+            `)
+            .or(`title.ilike.%${query}%,caption.ilike.%${query}%`)
+            .order('created_at', { ascending: false });
+
+        if (error) handleSupabaseError(error, 'searchPosts');
+
+        return data.map(post => ({
+            ...post,
+            likes_count: post.likes?.length || 0,
+            comments_count: post.comments?.length || 0,
+            isLiked: userId ? post.likes?.some((l: { user_id: string }) => l.user_id === userId) : false,
+            isBookmarked: userId ? post.bookmarks?.some((b: { user_id: string }) => b.user_id === userId) : false,
+        })) as (Post & { isLiked: boolean; isBookmarked: boolean; likes_count: number; comments_count: number })[];
     }
 };

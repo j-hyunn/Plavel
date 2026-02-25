@@ -133,7 +133,7 @@ export default function TermsPage() {
                 <div className="mt-8 p-4 bg-gray-50 rounded-xl text-sm text-gray-700 space-y-1">
                     <p className="text-xs font-bold text-gray-500 mb-2">부칙</p>
                     <p>본 약관은 2026년 2월 23일부터 시행됩니다.</p>
-                    <p><span className="font-semibold">문의:</span> [운영자 이메일]</p>
+                    <p><span className="font-semibold">문의:</span> lab.jehyun@gmail.com</p>
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-gray-100 text-xs text-gray-400 text-center">

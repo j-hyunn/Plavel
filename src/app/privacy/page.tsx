@@ -124,7 +124,7 @@ export default function PrivacyPage() {
                     </p>
                     <div className="mt-3 p-4 bg-gray-50 rounded-xl text-sm text-gray-700 space-y-1">
                         <p><span className="font-semibold">서비스명:</span> Plavel</p>
-                        <p><span className="font-semibold">이메일:</span> [운영자 이메일]</p>
+                        <p><span className="font-semibold">이메일:</span> lab.jehyun@gmail.com</p>
                     </div>
                 </Section>
 

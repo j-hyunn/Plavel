@@ -110,11 +110,7 @@ export default function SearchPage() {
                         <p className="text-sm text-gray-500">궁금한 여행지나 키워드를 입력해보세요.</p>
                     </div>
                 ) : (
-                    <div className="pt-2">
-                        <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-600">검색 결과</span>
-                            <span className="text-sm font-bold text-primary">{results.length}</span>
-                        </div>
+                    <div className="pt-4 px-4 md:px-0">
                         <ProfileGrid posts={results} />
                     </div>
                 )}
